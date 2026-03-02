@@ -85,12 +85,14 @@ export async function getSubTotalsByMonth(
   return totals;
 }
 
-export async function importSubEntries(entries: BdrSubEntryFormData[]): Promise<void> {
-  if (entries.length === 0) return;
+export async function importSubEntries(entries: BdrSubEntryFormData[]): Promise<number> {
+  if (entries.length === 0) return 0;
 
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from('bdr_sub_entries')
-    .insert(entries);
+    .insert(entries)
+    .select('id');
 
   if (error) throw error;
+  return data?.length ?? 0;
 }
