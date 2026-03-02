@@ -143,7 +143,7 @@ export const BdrSubExcelImport = ({ subType, projectId, selectedMonth, year, onI
 
       if (failedRows.length > 0) {
         notification.warning({
-          message: `Импортировано ${entries.length} из ${jsonData.length} строк`,
+          title: `Импортировано ${entries.length} из ${jsonData.length} строк`,
           description: (
             <ul style={{ margin: 0, paddingLeft: 16 }}>
               {failedRows.map((f) => (

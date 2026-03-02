@@ -84,8 +84,11 @@ export function useBdrSub(subType: BdrSubType, year: number): IUseBdrSubResult {
 
   const importFromExcel = useCallback(
     async (data: BdrSubEntryFormData[]) => {
-      await bdrSubService.importSubEntries(data);
-      await loadData();
+      try {
+        await bdrSubService.importSubEntries(data);
+      } finally {
+        await loadData();
+      }
     },
     [loadData]
   );

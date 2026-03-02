@@ -96,9 +96,13 @@ export async function getSubTotalsByMonth(
 export async function importSubEntries(entries: BdrSubEntryFormData[]): Promise<number> {
   if (entries.length === 0) return 0;
 
+  const cleaned = entries.map(({ project_id, ...rest }) =>
+    project_id ? { project_id, ...rest } : rest
+  );
+
   const { data, error } = await supabase
     .from('bdr_sub_entries')
-    .insert(entries)
+    .insert(cleaned)
     .select('id');
 
   if (error) throw error;
