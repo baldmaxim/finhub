@@ -29,6 +29,8 @@ export function useBdr(year: number, projectId: string | null = null): IUseBdrRe
   const [subTotals, setSubTotals] = useState<Record<string, MonthValues>>({});
   const [smrTotals, setSmrTotals] = useState<MonthValues>({});
   const [actualTotals, setActualTotals] = useState<ActualExecutionTotals>({ ks: {}, fact: {} });
+  const [smrAllYearsTotal, setSmrAllYearsTotal] = useState(0);
+  const [revenueCumBefore, setRevenueCumBefore] = useState<{ plan: number; fact: number }>({ plan: 0, fact: 0 });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -48,7 +50,7 @@ export function useBdr(year: number, projectId: string | null = null): IUseBdrRe
       dirtyRef.current.clear();
 
       const pid = projectId || undefined;
-      const [planEntries, factEntries, smr, matTotals, laborTotals, subTotals, designTotals, rentalTotals, overheadLaborTotals, actTotals] =
+      const [planEntries, factEntries, smr, matTotals, laborTotals, subTotals, designTotals, rentalTotals, overheadLaborTotals, actTotals, smrAllTotal, cumBefore] =
         await Promise.all([
           bdrService.getEntries(year, 'plan', pid),
           bdrService.getEntries(year, 'fact', pid),
@@ -60,6 +62,8 @@ export function useBdr(year: number, projectId: string | null = null): IUseBdrRe
           bdrSubService.getSubTotalsByMonth('rental', year, pid),
           bdrSubService.getSubTotalsByMonth('overhead_labor', year, pid),
           actualExecutionService.getAggregatedTotals(year, pid),
+          bdrService.getSmrAllYearsTotal(pid),
+          bdrService.getRevenueCumulativeBefore(year, pid),
         ]);
 
       const pMap: EntryMap = new Map();
@@ -78,6 +82,8 @@ export function useBdr(year: number, projectId: string | null = null): IUseBdrRe
       setFactMap(fMap);
       setSmrTotals(smr);
       setActualTotals(actTotals);
+      setSmrAllYearsTotal(smrAllTotal);
+      setRevenueCumBefore(cumBefore);
       setSubTotals({
         cost_materials: matTotals,
         cost_labor: laborTotals,
@@ -123,13 +129,12 @@ export function useBdr(year: number, projectId: string | null = null): IUseBdrRe
         case 'contract_not_accepted':
           return calcMonthVal('execution_total', month, type) - calcMonthVal('revenue_smr', month, type);
         case 'readiness_percent': {
-          const smrGrandTotal = Object.values(smrTotals).reduce((s, val) => s + val, 0);
-          if (!smrGrandTotal) return 0;
-          let cumulative = 0;
+          if (!smrAllYearsTotal) return 0;
+          let cumulative = type === 'plan' ? revenueCumBefore.plan : revenueCumBefore.fact;
           for (let m = 1; m <= month; m++) {
             cumulative += calcMonthVal('revenue_smr', m, type);
           }
-          return (cumulative / smrGrandTotal) * 100;
+          return (cumulative / smrAllYearsTotal) * 100;
         }
         case 'nzp_to_revenue': {
           const rev = calcMonthVal('revenue', month, type);
@@ -229,7 +234,7 @@ export function useBdr(year: number, projectId: string | null = null): IUseBdrRe
     }
 
     return result;
-  }, [planMap, factMap, subTotals, smrTotals, actualTotals, overheadExpanded, getVal]);
+  }, [planMap, factMap, subTotals, smrTotals, actualTotals, smrAllYearsTotal, revenueCumBefore, overheadExpanded, getVal]);
 
   const updateEntry = useCallback(
     (rowCode: string, month: number, amount: number, type: 'plan' | 'fact') => {
