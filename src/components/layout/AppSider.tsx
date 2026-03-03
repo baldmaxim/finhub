@@ -8,6 +8,7 @@ import {
   TeamOutlined,
   ProjectOutlined,
   FundOutlined,
+  CheckCircleOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 
@@ -16,6 +17,7 @@ const { Sider } = Layout;
 type MenuItem = Required<MenuProps>['items'][number];
 
 const menuItems: MenuItem[] = [
+  { key: '/actual-execution', icon: <CheckCircleOutlined />, label: 'Факт. выполнение' },
   { key: '/bdds', icon: <DollarOutlined />, label: 'БДДС' },
   { key: '/bdds/income', icon: <FundOutlined />, label: 'Плановый график' },
   { key: '/bdr', icon: <BarChartOutlined />, label: 'БДР' },

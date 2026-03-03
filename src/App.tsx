@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AppLayout } from './components/layout/AppLayout';
+import { ActualExecutionPageWrapper } from './pages/ActualExecutionPageWrapper';
 import { BddsPageWrapper } from './pages/BddsPageWrapper';
 import { BdrPageWrapper } from './pages/BdrPageWrapper';
 import { BblPageWrapper } from './pages/BblPageWrapper';
@@ -12,6 +13,7 @@ export const App = () => {
     <BrowserRouter>
       <Routes>
         <Route element={<AppLayout />}>
+          <Route path="/actual-execution" element={<ActualExecutionPageWrapper />} />
           <Route path="/bdds" element={<BddsPageWrapper />} />
           <Route path="/bdds/income" element={<BddsIncomePageWrapper />} />
           <Route path="/bdr" element={<BdrPageWrapper />} />

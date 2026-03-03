@@ -2,6 +2,8 @@ import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import type { BdrTableRow, BdrSubType, MonthValues } from '../types/bdr';
 import * as bdrService from '../services/bdrService';
 import * as bdrSubService from '../services/bdrSubService';
+import * as actualExecutionService from '../services/actualExecutionService';
+import type { ActualExecutionTotals } from '../types/actualExecution';
 import { BDR_ROWS, BDR_OVERHEAD_ROWS, OVERHEAD_CODES, COST_ROW_CODES } from '../utils/bdrConstants';
 import { MONTHS } from '../utils/constants';
 
@@ -26,6 +28,7 @@ export function useBdr(year: number): IUseBdrResult {
   const [factMap, setFactMap] = useState<EntryMap>(new Map());
   const [subTotals, setSubTotals] = useState<Record<string, MonthValues>>({});
   const [smrTotals, setSmrTotals] = useState<MonthValues>({});
+  const [actualTotals, setActualTotals] = useState<ActualExecutionTotals>({ ks: {}, fact: {} });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,7 +47,7 @@ export function useBdr(year: number): IUseBdrResult {
       setError(null);
       dirtyRef.current.clear();
 
-      const [planEntries, factEntries, smr, matTotals, laborTotals, subTotals, designTotals, rentalTotals, overheadLaborTotals] =
+      const [planEntries, factEntries, smr, matTotals, laborTotals, subTotals, designTotals, rentalTotals, overheadLaborTotals, actTotals] =
         await Promise.all([
           bdrService.getEntries(year, 'plan'),
           bdrService.getEntries(year, 'fact'),
@@ -55,6 +58,7 @@ export function useBdr(year: number): IUseBdrResult {
           bdrSubService.getSubTotalsByMonth('design', year),
           bdrSubService.getSubTotalsByMonth('rental', year),
           bdrSubService.getSubTotalsByMonth('overhead_labor', year),
+          actualExecutionService.getAggregatedTotals(year),
         ]);
 
       const pMap: EntryMap = new Map();
@@ -72,6 +76,7 @@ export function useBdr(year: number): IUseBdrResult {
       setPlanMap(pMap);
       setFactMap(fMap);
       setSmrTotals(smr);
+      setActualTotals(actTotals);
       setSubTotals({
         cost_materials: matTotals,
         cost_labor: laborTotals,
@@ -107,7 +112,11 @@ export function useBdr(year: number): IUseBdrResult {
 
       switch (code) {
         case 'revenue_smr':
-          return type === 'plan' ? (smrTotals[month] || 0) : v('revenue_smr', month, 'fact');
+          return type === 'plan' ? (smrTotals[month] || 0) : (actualTotals.ks[month] || v('revenue_smr', month, 'fact'));
+        case 'execution_total':
+          return type === 'fact' && actualTotals.fact[month]
+            ? actualTotals.fact[month]
+            : v('execution_total', month, type);
         case 'revenue':
           return calcMonthVal('revenue_smr', month, type);
         case 'contract_not_accepted':
@@ -210,7 +219,7 @@ export function useBdr(year: number): IUseBdrResult {
     }
 
     return result;
-  }, [planMap, factMap, subTotals, smrTotals, overheadExpanded, getVal]);
+  }, [planMap, factMap, subTotals, smrTotals, actualTotals, overheadExpanded, getVal]);
 
   const updateEntry = useCallback(
     (rowCode: string, month: number, amount: number, type: 'plan' | 'fact') => {

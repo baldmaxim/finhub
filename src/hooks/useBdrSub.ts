@@ -20,7 +20,7 @@ interface IUseBdrSubResult {
   reload: () => Promise<void>;
 }
 
-export function useBdrSub(subType: BdrSubType, year: number): IUseBdrSubResult {
+export function useBdrSub(subType: BdrSubType, _year: number): IUseBdrSubResult {
   const [entries, setEntries] = useState<BdrSubEntry[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
