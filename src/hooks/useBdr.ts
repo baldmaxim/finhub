@@ -125,7 +125,11 @@ export function useBdr(year: number, projectId: string | null = null): IUseBdrRe
         case 'readiness_percent': {
           const smrGrandTotal = Object.values(smrTotals).reduce((s, val) => s + val, 0);
           if (!smrGrandTotal) return 0;
-          return (calcMonthVal('revenue_smr', month, type) / smrGrandTotal) * 100;
+          let cumulative = 0;
+          for (let m = 1; m <= month; m++) {
+            cumulative += calcMonthVal('revenue_smr', m, type);
+          }
+          return (cumulative / smrGrandTotal) * 100;
         }
         case 'nzp_to_revenue': {
           const rev = calcMonthVal('revenue', month, type);
