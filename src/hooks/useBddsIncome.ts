@@ -96,6 +96,11 @@ export function useBddsIncome(): IUseBddsIncomeResult {
           let sum = 0;
           if (wt.code === 'total_smr') {
             sum = calcGroupSum(SMR_CODES, mk);
+          } else if (wt.code === 'total_smr_no_vat') {
+            const totalSmr = calcGroupSum(SMR_CODES, mk);
+            const year = parseInt(mk.split('-')[0], 10);
+            const vatRate = year >= 2026 ? 22 : 20;
+            sum = totalSmr * 100 / (100 + vatRate);
           } else if (wt.code === 'total_income') {
             const prevMk = getPrevMonthKey(mk);
             const totalSmrPrev = calcGroupSum(SMR_CODES, prevMk);

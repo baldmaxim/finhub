@@ -16,6 +16,7 @@ export const WORK_TYPES: WorkType[] = [
   { code: 'landscaping', name: 'Благоустройство', group: 'smr' },
   { code: 'external_networks', name: 'Наружные сети', group: 'smr' },
   { code: 'total_smr', name: 'Всего СМР по проекту', isCalculated: true },
+  { code: 'total_smr_no_vat', name: 'Всего СМР по проекту без НДС', isCalculated: true },
   { code: 'advance_income', name: 'Аванс (Приход)', group: 'finance' },
   { code: 'advance_offset', name: 'Зачет Аванса', group: 'finance' },
   { code: 'guarantee_retention', name: 'Гарантийное Удержание', group: 'finance' },
