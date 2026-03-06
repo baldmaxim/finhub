@@ -135,24 +135,6 @@ export const ExcelImportButton = ({ disabled, onImport }: IProps) => {
           message.warning(`Пропущено строк (${skippedNames.length}): ${skippedNames.join(', ')}`, 10);
         }
 
-        // Диагностика: показать данные по Возврат ГУ
-        const guRow = result.find((r) => r.workTypeCode === 'guarantee_return');
-        if (guRow) {
-          const nonZero = Object.entries(guRow.months).filter(([, v]) => v !== 0);
-          console.log('[Import] Возврат ГУ найдена, ненулевые месяцы:', nonZero);
-          console.log('[Import] Все месяцы Возврат ГУ:', guRow.months);
-          if (nonZero.length === 0) {
-            message.info('Возврат ГУ: все значения = 0. Проверьте столбцы в Excel.', 10);
-          } else {
-            message.info(`Возврат ГУ: ${nonZero.length} ненулевых месяцев: ${nonZero.map(([k, v]) => `${k}=${v}`).join(', ')}`, 10);
-          }
-        } else {
-          console.log('[Import] Возврат ГУ НЕ найдена в результатах');
-        }
-
-        // Диагностика: показать распознанные месяцы
-        console.log('[Import] Распознанные месяцы:', monthColumns.map((mc) => `col${mc.index}=${mc.key}`));
-
         onImport(result);
         message.success(`Импортировано: ${result.length} строк, ${monthColumns.length} месяцев`);
       } catch {

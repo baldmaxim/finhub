@@ -5,7 +5,8 @@ export async function getEntries(projectId?: string): Promise<ActualExecutionEnt
   let query = supabase
     .from('actual_execution_entries')
     .select('*')
-    .order('month_key', { ascending: true });
+    .order('month_key', { ascending: true })
+    .limit(10000);
 
   if (projectId) {
     query = query.eq('project_id', projectId);

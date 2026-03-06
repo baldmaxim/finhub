@@ -2,7 +2,7 @@ import { supabase } from '../config/supabase';
 import type { BddsIncomeEntry, BddsIncomeNote } from '../types/bddsIncome';
 
 export async function getEntries(projectId?: string): Promise<BddsIncomeEntry[]> {
-  let query = supabase.from('bdds_income_entries').select('*');
+  let query = supabase.from('bdds_income_entries').select('*').limit(10000);
   if (projectId) {
     query = query.eq('project_id', projectId);
   }
@@ -70,7 +70,8 @@ export async function getIncomeTotalsByMonth(year: number, projectId?: string): 
   let query = supabase
     .from('bdds_income_entries')
     .select('work_type_code, month_key, amount')
-    .or(`month_key.like.${year}-%,month_key.eq.${prevDec}`);
+    .or(`month_key.like.${year}-%,month_key.eq.${prevDec}`)
+    .limit(10000);
 
   if (projectId) {
     query = query.eq('project_id', projectId);

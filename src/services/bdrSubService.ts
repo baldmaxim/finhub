@@ -11,7 +11,8 @@ export async function getSubEntries(
     .from('bdr_sub_entries')
     .select('*')
     .eq('sub_type', subType)
-    .order('entry_date', { ascending: false });
+    .order('entry_date', { ascending: false })
+    .limit(10000);
 
   if (projectId) {
     query = query.eq('project_id', projectId);
