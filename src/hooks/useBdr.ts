@@ -230,12 +230,14 @@ export function useBdr(year: number, projectId: string | null = null): IUseBdrRe
 
         row[`plan_month_${m.key}`] = planVal;
         row[`fact_month_${m.key}`] = factVal;
-        planTotal += planVal;
-        factTotal += factVal;
+        if (!def.isPercent) {
+          planTotal += planVal;
+          factTotal += factVal;
+        }
       }
 
-      row.plan_total = planTotal;
-      row.fact_total = factTotal;
+      row.plan_total = def.isPercent ? 0 : planTotal;
+      row.fact_total = def.isPercent ? 0 : factTotal;
 
       return row;
     };
