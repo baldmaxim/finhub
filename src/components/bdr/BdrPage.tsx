@@ -14,7 +14,9 @@ export const BdrPage = () => {
     saving,
     error,
     overheadExpanded,
+    costExpanded,
     toggleOverhead,
+    toggleCost,
     updateEntry,
     saveAll,
     openSubType,
@@ -56,7 +58,9 @@ export const BdrPage = () => {
         <BdrTable
           rows={rows}
           overheadExpanded={overheadExpanded}
+          costExpanded={costExpanded}
           onToggleOverhead={toggleOverhead}
+          onToggleCost={toggleCost}
           onUpdatePlan={isReadOnly ? undefined : (code, month, amount) => updateEntry(code, month, amount, 'plan')}
           onUpdateFact={isReadOnly ? undefined : (code, month, amount) => updateEntry(code, month, amount, 'fact')}
           onOpenSub={setOpenSubType}

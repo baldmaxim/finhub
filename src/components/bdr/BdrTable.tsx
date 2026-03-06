@@ -7,13 +7,15 @@ import { buildBdrMonthColumns, buildBdrTotalColumns } from './BdrMonthColumns';
 interface IProps {
   rows: BdrTableRow[];
   overheadExpanded: boolean;
+  costExpanded: boolean;
   onToggleOverhead: () => void;
+  onToggleCost: () => void;
   onUpdatePlan?: (rowCode: string, month: number, amount: number) => void;
   onUpdateFact?: (rowCode: string, month: number, amount: number) => void;
   onOpenSub: (subType: BdrSubType) => void;
 }
 
-export const BdrTable = ({ rows, overheadExpanded, onToggleOverhead, onUpdatePlan, onUpdateFact, onOpenSub }: IProps) => {
+export const BdrTable = ({ rows, overheadExpanded, costExpanded, onToggleOverhead, onToggleCost, onUpdatePlan, onUpdateFact, onOpenSub }: IProps) => {
   const columns = useMemo(() => {
     const nameCol = {
       title: 'Статья',
@@ -24,6 +26,18 @@ export const BdrTable = ({ rows, overheadExpanded, onToggleOverhead, onUpdatePla
       render: (_: unknown, record: BdrTableRow) => {
         if (record.isHeader) {
           return <strong>{record.name}</strong>;
+        }
+
+        if (record.isCostParent) {
+          return (
+            <span
+              className="bdr-clickable-name bdr-semibold-name"
+              onClick={onToggleCost}
+            >
+              {costExpanded ? <DownOutlined /> : <RightOutlined />}
+              {' '}{record.name}
+            </span>
+          );
         }
 
         if (record.isOverhead) {
@@ -39,9 +53,10 @@ export const BdrTable = ({ rows, overheadExpanded, onToggleOverhead, onUpdatePla
         }
 
         if (record.isClickable && record.subType) {
-          const cls = record.isOverheadItem
-            ? 'bdr-clickable-name bdr-overhead-indent'
-            : 'bdr-clickable-name';
+          const clsList = ['bdr-clickable-name'];
+          if (record.isOverheadItem) clsList.push('bdr-overhead-indent');
+          else if (record.isCostChild) clsList.push('bdr-cost-indent');
+          const cls = clsList.join(' ');
           return (
             <span
               className={cls}
@@ -68,7 +83,7 @@ export const BdrTable = ({ rows, overheadExpanded, onToggleOverhead, onUpdatePla
     const totalCols = buildBdrTotalColumns();
 
     return [nameCol, ...monthCols, ...totalCols];
-  }, [overheadExpanded, onToggleOverhead, onUpdatePlan, onUpdateFact, onOpenSub]);
+  }, [overheadExpanded, costExpanded, onToggleOverhead, onToggleCost, onUpdatePlan, onUpdateFact, onOpenSub]);
 
   const rowClassName = (record: BdrTableRow) => {
     const classes: string[] = [];
@@ -76,6 +91,7 @@ export const BdrTable = ({ rows, overheadExpanded, onToggleOverhead, onUpdatePla
     if (record.isSemiBold) classes.push('bdr-semibold-row');
     if (record.isCalculated && !record.isHeader) classes.push('bdr-calculated-row');
     if (record.isOverheadItem) classes.push('bdr-overhead-item');
+    if (record.isCostChild) classes.push('bdr-cost-child');
     return classes.join(' ');
   };
 

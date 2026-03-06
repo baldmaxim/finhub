@@ -51,7 +51,7 @@ export const buildBdrMonthColumns = (options: IMonthColumnsOptions): ColumnsType
               return <span>{formatPercentValue(value)}</span>;
             }
 
-            const readOnly = record.isCalculated || !onUpdatePlan;
+            const readOnly = record.isCalculated || !!record.isPlanCalculated || !onUpdatePlan;
             return (
               <BddsEditableCell
                 value={value}

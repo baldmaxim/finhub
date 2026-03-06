@@ -110,6 +110,9 @@ body {
 .bdr-overhead-indent {
   padding-left: 24px;
 }
+.bdr-cost-indent {
+  padding-left: 16px;
+}
 
 /* Утилиты — отступы и размеры */
 .mb-16 {
@@ -283,6 +286,9 @@ body {
 @media (max-width: 768px) {
   .bdr-overhead-indent {
     padding-left: 12px;
+  }
+  .bdr-cost-indent {
+    padding-left: 8px;
   }
 
   .dashboard-kpi-row .ant-col {

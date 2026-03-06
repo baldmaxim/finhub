@@ -13,7 +13,9 @@ interface IUseBdrResult {
   saving: boolean;
   error: string | null;
   overheadExpanded: boolean;
+  costExpanded: boolean;
   toggleOverhead: () => void;
+  toggleCost: () => void;
   updateEntry: (rowCode: string, month: number, amount: number, type: 'plan' | 'fact') => void;
   saveAll: () => Promise<void>;
   openSubType: BdrSubType | null;
@@ -35,12 +37,17 @@ export function useBdr(year: number, projectId: string | null = null): IUseBdrRe
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [overheadExpanded, setOverheadExpanded] = useState(false);
+  const [costExpanded, setCostExpanded] = useState(false);
   const [openSubType, setOpenSubType] = useState<BdrSubType | null>(null);
 
   const dirtyRef = useRef<Set<string>>(new Set());
 
   const toggleOverhead = useCallback(() => {
     setOverheadExpanded((prev) => !prev);
+  }, []);
+
+  const toggleCost = useCallback(() => {
+    setCostExpanded((prev) => !prev);
   }, []);
 
   const loadData = useCallback(async () => {
@@ -160,8 +167,12 @@ export function useBdr(year: number, projectId: string | null = null): IUseBdrRe
         }
         case 'marginal_profit':
           return calcMonthVal('revenue', month, type) - calcMonthVal('cost_total', month, type);
+        case 'fixed_expenses':
+          return type === 'plan'
+            ? calcMonthVal('revenue_smr', month, 'plan') * 0.2
+            : v('fixed_expenses', month, 'fact');
         case 'operating_profit':
-          return calcMonthVal('marginal_profit', month, type) - v('fixed_expenses', month, type);
+          return calcMonthVal('marginal_profit', month, type) - calcMonthVal('fixed_expenses', month, type);
         case 'operating_profit_pct': {
           const rev = calcMonthVal('revenue', month, type);
           if (!rev) return 0;
@@ -176,7 +187,7 @@ export function useBdr(year: number, projectId: string | null = null): IUseBdrRe
       }
     };
 
-    const buildRow = (def: typeof BDR_ROWS[number], isOverheadItem?: boolean): BdrTableRow => {
+    const buildRow = (def: typeof BDR_ROWS[number], opts?: { isOverheadItem?: boolean; isCostChild?: boolean }): BdrTableRow => {
       const row: BdrTableRow = {
         key: def.code,
         name: def.name,
@@ -186,7 +197,10 @@ export function useBdr(year: number, projectId: string | null = null): IUseBdrRe
         isCalculated: def.isCalculated,
         isClickable: def.isClickable,
         isOverhead: def.isOverhead,
-        isOverheadItem,
+        isOverheadItem: opts?.isOverheadItem,
+        isCostParent: def.isCostParent,
+        isCostChild: opts?.isCostChild,
+        isPlanCalculated: def.isPlanCalculated,
         isPercent: def.isPercent,
         subType: def.subType,
       };
@@ -200,9 +214,11 @@ export function useBdr(year: number, projectId: string | null = null): IUseBdrRe
         let planVal: number;
         let factVal: number;
 
-        if (def.isCalculated) {
+        if (def.isCalculated || def.isPlanCalculated) {
           planVal = calcMonthVal(def.code, m.key, 'plan');
-          factVal = calcMonthVal(def.code, m.key, 'fact');
+          factVal = def.isCalculated
+            ? calcMonthVal(def.code, m.key, 'fact')
+            : getVal(def.code, m.key, 'fact');
         } else if (def.isClickable && def.subType && subTotals[def.code]) {
           planVal = getVal(def.code, m.key, 'plan');
           factVal = subTotals[def.code]?.[m.key] || 0;
@@ -224,17 +240,23 @@ export function useBdr(year: number, projectId: string | null = null): IUseBdrRe
     };
 
     for (const def of BDR_ROWS) {
-      result.push(buildRow(def));
+      if (def.isCostChild) {
+        if (!costExpanded) continue;
+        result.push(buildRow(def, { isCostChild: true }));
 
-      if (def.isOverhead && overheadExpanded) {
-        for (const ohDef of BDR_OVERHEAD_ROWS) {
-          result.push(buildRow(ohDef, true));
+        if (def.isOverhead && overheadExpanded) {
+          for (const ohDef of BDR_OVERHEAD_ROWS) {
+            result.push(buildRow(ohDef, { isOverheadItem: true, isCostChild: true }));
+          }
         }
+        continue;
       }
+
+      result.push(buildRow(def));
     }
 
     return result;
-  }, [planMap, factMap, subTotals, smrTotals, actualTotals, smrAllYearsTotal, revenueCumBefore, overheadExpanded, getVal]);
+  }, [planMap, factMap, subTotals, smrTotals, actualTotals, smrAllYearsTotal, revenueCumBefore, overheadExpanded, costExpanded, getVal]);
 
   const updateEntry = useCallback(
     (rowCode: string, month: number, amount: number, type: 'plan' | 'fact') => {
@@ -278,7 +300,7 @@ export function useBdr(year: number, projectId: string | null = null): IUseBdrRe
           };
           if (projectId) base.project_id = projectId;
 
-          if (planAmount !== 0 || dirtyRef.current.has(`${def.code}_${m.key}_plan`)) {
+          if (!def.isPlanCalculated && (planAmount !== 0 || dirtyRef.current.has(`${def.code}_${m.key}_plan`))) {
             entries.push({ ...base, amount: planAmount, entry_type: 'plan' });
           }
           // Для кликабельных строк факт приходит из суб-баз, не сохраняем
@@ -302,7 +324,9 @@ export function useBdr(year: number, projectId: string | null = null): IUseBdrRe
     saving,
     error,
     overheadExpanded,
+    costExpanded,
     toggleOverhead,
+    toggleCost,
     updateEntry,
     saveAll,
     openSubType,
