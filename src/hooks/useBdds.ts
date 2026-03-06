@@ -10,6 +10,8 @@ interface IUseBddsResult {
   loading: boolean;
   saving: boolean;
   error: string | null;
+  expandedParents: Set<string>;
+  toggleParent: (categoryId: string) => void;
   updateFactEntry: (categoryId: string, month: number, amount: number) => void;
   saveAll: () => Promise<void>;
 }
@@ -19,9 +21,22 @@ export function useBdds(year: number, projectId: string | null = null): IUseBdds
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [expandedParents, setExpandedParents] = useState<Set<string>>(new Set());
 
   const categoriesRef = useRef<BddsCategory[]>([]);
   const dirtyFactRef = useRef<Set<string>>(new Set());
+
+  const toggleParent = useCallback((categoryId: string) => {
+    setExpandedParents((prev) => {
+      const next = new Set(prev);
+      if (next.has(categoryId)) {
+        next.delete(categoryId);
+      } else {
+        next.add(categoryId);
+      }
+      return next;
+    });
+  }, []);
 
   const buildSections = useCallback(
     (
@@ -35,13 +50,57 @@ export function useBdds(year: number, projectId: string | null = null): IUseBdds
           .filter((c) => c.section_code === sectionCode)
           .sort((a, b) => a.sort_order - b.sort_order);
 
-        const rows: BddsRow[] = sectionCategories.map((cat) => {
+        // Разделяем на родителей и детей
+        const parentCats = sectionCategories.filter((c) => !c.parent_id);
+        const childCats = sectionCategories.filter((c) => c.parent_id);
+
+        const rows: BddsRow[] = parentCats.map((cat) => {
           let planMonths = planMap.get(cat.id) || {};
           const factMonths = factMap.get(cat.id) || {};
 
           // Автозаполнение плана только для доходов операционной секции
           if (sectionCode === 'operating' && cat.row_type === 'income' && !cat.is_calculated) {
             planMonths = { ...incomeTotals };
+          }
+
+          // Собираем дочерние строки
+          const catChildren = childCats.filter((c) => c.parent_id === cat.id);
+          let children: BddsRow[] | undefined;
+
+          if (catChildren.length > 0) {
+            children = catChildren.map((child) => ({
+              categoryId: child.id,
+              name: child.name,
+              rowType: child.row_type,
+              isCalculated: child.is_calculated,
+              months: planMap.get(child.id) || {},
+              total: calculateRowTotal(planMap.get(child.id) || {}),
+              factMonths: factMap.get(child.id) || {},
+              factTotal: calculateRowTotal(factMap.get(child.id) || {}),
+              parentId: child.parent_id,
+            }));
+
+            // Родитель с formula=sum_children — сумма дочерних
+            if (cat.calculation_formula === 'sum_children') {
+              const sumPlan: MonthValues = {};
+              const sumFact: MonthValues = {};
+              for (const m of MONTHS) {
+                sumPlan[m.key] = children.reduce((s, ch) => s + (ch.months[m.key] || 0), 0);
+                sumFact[m.key] = children.reduce((s, ch) => s + (ch.factMonths[m.key] || 0), 0);
+              }
+              return {
+                categoryId: cat.id,
+                name: cat.name,
+                rowType: cat.row_type,
+                isCalculated: true,
+                months: sumPlan,
+                total: calculateRowTotal(sumPlan),
+                factMonths: sumFact,
+                factTotal: calculateRowTotal(sumFact),
+                parentId: null,
+                children,
+              };
+            }
           }
 
           return {
@@ -53,13 +112,15 @@ export function useBdds(year: number, projectId: string | null = null): IUseBdds
             total: calculateRowTotal(planMonths),
             factMonths,
             factTotal: calculateRowTotal(factMonths),
+            parentId: null,
+            children,
           };
         });
 
         // Рассчитать ЧДП (план и факт)
-        const ncfRow = rows.find((r) => r.isCalculated);
+        const ncfRow = rows.find((r) => r.isCalculated && !r.children);
         if (ncfRow) {
-          const dataRows = rows.filter((r) => !r.isCalculated);
+          const dataRows = rows.filter((r) => !r.isCalculated || r.children);
           ncfRow.months = calculateNetCashFlow(sectionCode, dataRows);
           ncfRow.total = calculateRowTotal(ncfRow.months);
 
@@ -132,10 +193,46 @@ export function useBdds(year: number, projectId: string | null = null): IUseBdds
 
       setSections((prev) =>
         prev.map((section) => {
-          const hasCategory = section.rows.some((r) => r.categoryId === categoryId);
+          // Проверяем наличие категории в строках или дочерних
+          const hasCategory = section.rows.some(
+            (r) => r.categoryId === categoryId || r.children?.some((ch) => ch.categoryId === categoryId)
+          );
           if (!hasCategory) return section;
 
           const updatedRows = section.rows.map((row) => {
+            // Обновление дочерней строки
+            if (row.children) {
+              const hasChild = row.children.some((ch) => ch.categoryId === categoryId);
+              if (hasChild) {
+                const updatedChildren = row.children.map((ch) => {
+                  if (ch.categoryId !== categoryId) return ch;
+                  const newFactMonths = { ...ch.factMonths, [month]: amount };
+                  return {
+                    ...ch,
+                    factMonths: newFactMonths,
+                    factTotal: calculateRowTotal(newFactMonths),
+                  };
+                });
+
+                // Пересчитать родителя
+                const sumFact: MonthValues = {};
+                const sumPlan: MonthValues = {};
+                for (const m of MONTHS) {
+                  sumFact[m.key] = updatedChildren.reduce((s, ch) => s + (ch.factMonths[m.key] || 0), 0);
+                  sumPlan[m.key] = updatedChildren.reduce((s, ch) => s + (ch.months[m.key] || 0), 0);
+                }
+
+                return {
+                  ...row,
+                  children: updatedChildren,
+                  months: sumPlan,
+                  total: calculateRowTotal(sumPlan),
+                  factMonths: sumFact,
+                  factTotal: calculateRowTotal(sumFact),
+                };
+              }
+            }
+
             if (row.categoryId !== categoryId || row.isCalculated) return row;
             const newFactMonths = { ...row.factMonths, [month]: amount };
             return {
@@ -146,9 +243,9 @@ export function useBdds(year: number, projectId: string | null = null): IUseBdds
           });
 
           // Пересчитать ЧДП факт
-          const ncfRow = updatedRows.find((r) => r.isCalculated);
+          const ncfRow = updatedRows.find((r) => r.isCalculated && !r.children);
           if (ncfRow) {
-            const dataRows = updatedRows.filter((r) => !r.isCalculated);
+            const dataRows = updatedRows.filter((r) => !r.isCalculated || r.children);
             const factDataRows: BddsRow[] = dataRows.map((r) => ({
               ...r,
               months: r.factMonths,
@@ -178,19 +275,22 @@ export function useBdds(year: number, projectId: string | null = null): IUseBdds
 
       for (const section of sections) {
         for (const row of section.rows) {
-          if (row.isCalculated) continue;
-          for (const m of MONTHS) {
-            const amount = row.factMonths[m.key] || 0;
-            if (amount !== 0 || dirtyFactRef.current.has(`${row.categoryId}_${m.key}`)) {
-              const entry: typeof entries[number] = {
-                category_id: row.categoryId,
-                year,
-                month: m.key,
-                amount,
-                entry_type: 'fact',
-              };
-              if (projectId) entry.project_id = projectId;
-              entries.push(entry);
+          const rowsToSave = row.children ? row.children : (row.isCalculated ? [] : [row]);
+          for (const r of rowsToSave) {
+            if (r.isCalculated) continue;
+            for (const m of MONTHS) {
+              const amount = r.factMonths[m.key] || 0;
+              if (amount !== 0 || dirtyFactRef.current.has(`${r.categoryId}_${m.key}`)) {
+                const entry: typeof entries[number] = {
+                  category_id: r.categoryId,
+                  year,
+                  month: m.key,
+                  amount,
+                  entry_type: 'fact',
+                };
+                if (projectId) entry.project_id = projectId;
+                entries.push(entry);
+              }
             }
           }
         }
@@ -203,5 +303,5 @@ export function useBdds(year: number, projectId: string | null = null): IUseBdds
     }
   }, [sections, year, projectId]);
 
-  return { sections, loading, saving, error, updateFactEntry, saveAll };
+  return { sections, loading, saving, error, expandedParents, toggleParent, updateFactEntry, saveAll };
 }

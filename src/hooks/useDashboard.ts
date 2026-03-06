@@ -265,7 +265,7 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
           if (!useFact && sectionCode === 'operating' && c.row_type === 'income') {
             months = { [monthKey]: d.incomeTotals[monthKey] || 0 };
           }
-          return { categoryId: c.id, name: c.name, rowType: c.row_type, isCalculated: false, months, total: 0, factMonths: {}, factTotal: 0 };
+          return { categoryId: c.id, name: c.name, rowType: c.row_type, isCalculated: false, months, total: 0, factMonths: {}, factTotal: 0, parentId: null };
         });
         const ncf = calculateNetCashFlow(sectionCode, rows);
         return ncf[monthKey] || 0;

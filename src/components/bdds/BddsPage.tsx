@@ -7,7 +7,7 @@ import { BddsTable } from './BddsTable';
 export const BddsPage = () => {
   const [year, setYear] = useState(new Date().getFullYear());
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const { sections, loading, saving, error, updateFactEntry, saveAll } = useBdds(year, selectedProjectId);
+  const { sections, loading, saving, error, expandedParents, toggleParent, updateFactEntry, saveAll } = useBdds(year, selectedProjectId);
 
   const isReadOnly = !selectedProjectId;
 
@@ -41,6 +41,8 @@ export const BddsPage = () => {
       ) : (
         <BddsTable
           sections={sections}
+          expandedParents={expandedParents}
+          onToggleParent={toggleParent}
           onUpdateFact={isReadOnly ? undefined : updateFactEntry}
         />
       )}

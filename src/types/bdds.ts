@@ -10,6 +10,7 @@ export interface BddsCategory {
   sort_order: number;
   is_calculated: boolean;
   calculation_formula: string | null;
+  parent_id: string | null;
 }
 
 export interface BddsEntry {
@@ -32,6 +33,8 @@ export interface BddsRow {
   total: number;
   factMonths: MonthValues;
   factTotal: number;
+  parentId: string | null;
+  children?: BddsRow[];
 }
 
 export interface BddsSection {
@@ -45,6 +48,8 @@ export interface BddsTableRow {
   name: string;
   isHeader?: boolean;
   isCalculated?: boolean;
+  isExpandable?: boolean;
+  isChild?: boolean;
   categoryId?: string;
   rowType?: RowType;
   month_1?: number;

@@ -282,6 +282,33 @@ body {
   }
 }
 
+/* БДДС — раскрываемые строки (родители) */
+.bdds-expandable-row td {
+  font-weight: 600;
+  background-color: #f9f9f9 !important;
+}
+
+.bdds-clickable-name {
+  color: #1677ff;
+  cursor: pointer;
+}
+.bdds-clickable-name:hover {
+  text-decoration: underline;
+}
+
+.bdds-semibold-name {
+  font-weight: 600;
+}
+
+/* БДДС — дочерние строки */
+.bdds-child-row td {
+  font-size: 12px;
+}
+
+.bdds-child-indent {
+  padding-left: 24px;
+}
+
 /* Адаптивность БДР */
 @media (max-width: 768px) {
   .bdr-overhead-indent {
@@ -289,6 +316,9 @@ body {
   }
   .bdr-cost-indent {
     padding-left: 8px;
+  }
+  .bdds-child-indent {
+    padding-left: 12px;
   }
 
   .dashboard-kpi-row .ant-col {
