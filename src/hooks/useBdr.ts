@@ -181,7 +181,7 @@ export function useBdr(year: number, projectId: string | null = null): IUseBdrRe
         case 'profit_before_tax':
           return calcMonthVal('operating_profit', month, type) + v('other_income_expense', month, type);
         case 'net_profit':
-          return calcMonthVal('profit_before_tax', month, type);
+          return calcMonthVal('profit_before_tax', month, type) - v('income_tax', month, type);
         default:
           return v(code, month, type);
       }
