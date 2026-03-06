@@ -81,21 +81,34 @@ export const ExcelImportButton = ({ disabled, onImport }: IProps) => {
         }
 
         const result: ExcelImportData[] = [];
-        let skipped = 0;
+        const skippedNames: string[] = [];
 
         for (let r = 1; r < jsonData.length; r++) {
           const row = jsonData[r];
-          if (!row || !row[0]) continue;
+          if (!row) continue;
 
-          const workName = String(row[0]).trim();
-          const workType = findWorkTypeByName(workName);
+          // Ищем имя вида работ в первых трёх столбцах (col 0, 1, 2)
+          // В Excel могут быть объединённые ячейки, из-за чего имя попадает в другой столбец
+          let workType;
+          let noteColIndex = 1;
+
+          for (let col = 0; col <= 2; col++) {
+            if (row[col]) {
+              workType = findWorkTypeByName(String(row[col]).trim());
+              if (workType) {
+                noteColIndex = col + 1;
+                break;
+              }
+            }
+          }
 
           if (!workType) {
-            skipped++;
+            const name = String(row[0] || row[1] || row[2] || '').trim();
+            if (name) skippedNames.push(name);
             continue;
           }
 
-          const note = row[1] ? String(row[1]).trim() : '';
+          const note = row[noteColIndex] ? String(row[noteColIndex]).trim() : '';
           const months: Record<string, number> = {};
 
           for (const mc of monthColumns) {
@@ -118,8 +131,8 @@ export const ExcelImportButton = ({ disabled, onImport }: IProps) => {
           return;
         }
 
-        if (skipped > 0) {
-          message.warning(`Пропущено строк (не найдено соответствие): ${skipped}`);
+        if (skippedNames.length > 0) {
+          message.warning(`Пропущено строк (${skippedNames.length}): ${skippedNames.join(', ')}`, 10);
         }
 
         onImport(result);
