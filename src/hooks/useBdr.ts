@@ -74,8 +74,12 @@ export function useBdr(yearFrom: number, yearTo: number, projectId: string | nul
 
       const newYearData = new Map<number, YearData>();
 
+      const overheadSubTypes = BDR_OVERHEAD_ROWS
+        .filter((r) => r.subType)
+        .map((r) => r.subType!);
+
       for (const yr of years) {
-        const [planEntries, factEntries, smr, mat, lab, sub, des, ren, ovl, act] =
+        const [planEntries, factEntries, smr, mat, lab, sub, des, ren, overheadSubs, act] =
           await Promise.all([
             bdrService.getEntries(yr, 'plan', pid),
             bdrService.getEntries(yr, 'fact', pid),
@@ -85,7 +89,7 @@ export function useBdr(yearFrom: number, yearTo: number, projectId: string | nul
             bdrSubService.getSubTotalsByMonth('subcontract', yr, pid),
             bdrSubService.getSubTotalsByMonth('design', yr, pid),
             bdrSubService.getSubTotalsByMonth('rental', yr, pid),
-            bdrSubService.getSubTotalsByMonth('overhead_labor', yr, pid),
+            bdrSubService.getMultiSubTotalsByMonth(overheadSubTypes, yr, pid),
             actualExecutionService.getAggregatedTotals(yr, pid),
           ]);
 
@@ -104,13 +108,21 @@ export function useBdr(yearFrom: number, yearTo: number, projectId: string | nul
           m[e.month] = (m[e.month] || 0) + Number(e.amount);
         }
 
+        const subTotals: Record<string, MonthValues> = {
+          cost_materials: mat, cost_labor: lab, cost_subcontract: sub,
+          cost_design: des, cost_rental: ren,
+        };
+
+        for (const ohDef of BDR_OVERHEAD_ROWS) {
+          if (ohDef.subType) {
+            subTotals[ohDef.code] = overheadSubs[ohDef.subType] || {};
+          }
+        }
+
         newYearData.set(yr, {
           planMap: pMap,
           factMap: fMap,
-          subTotals: {
-            cost_materials: mat, cost_labor: lab, cost_subcontract: sub,
-            cost_design: des, cost_rental: ren, overhead_01: ovl,
-          },
+          subTotals: subTotals,
           smrTotals: smr,
           actualTotals: act,
         });
@@ -167,8 +179,8 @@ export function useBdr(yearFrom: number, yearTo: number, projectId: string | nul
           }
           case 'cost_overhead':
             return OVERHEAD_CODES.reduce((sum, c) => {
-              if (c === 'overhead_01' && type === 'fact') {
-                return sum + (ySub['overhead_01']?.[month] || 0);
+              if (type === 'fact' && ySub[c]) {
+                return sum + (ySub[c]?.[month] || 0);
               }
               return sum + getVal(c, month, type);
             }, 0);

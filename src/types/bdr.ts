@@ -1,6 +1,14 @@
 export type BdrEntryType = 'plan' | 'fact';
 
-export type BdrSubType = 'materials' | 'labor' | 'subcontract' | 'design' | 'rental' | 'overhead_labor';
+export type BdrSubType =
+  | 'materials' | 'labor' | 'subcontract' | 'design' | 'rental'
+  | 'overhead_labor'
+  | 'overhead_02' | 'overhead_03' | 'overhead_04' | 'overhead_05'
+  | 'overhead_06' | 'overhead_07' | 'overhead_08' | 'overhead_09'
+  | 'overhead_10' | 'overhead_11' | 'overhead_12' | 'overhead_13'
+  | 'overhead_14' | 'overhead_15' | 'overhead_16' | 'overhead_17'
+  | 'overhead_18' | 'overhead_19' | 'overhead_20' | 'overhead_21'
+  | 'overhead_22' | 'overhead_23' | 'overhead_24';
 
 export interface BdrEntry {
   id: string;

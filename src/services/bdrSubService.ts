@@ -94,6 +94,35 @@ export async function getSubTotalsByMonth(
   return totals;
 }
 
+export async function getMultiSubTotalsByMonth(
+  subTypes: BdrSubType[],
+  year: number,
+  projectId?: string
+): Promise<Record<string, Record<number, number>>> {
+  let query = supabase
+    .from('bdr_sub_entries')
+    .select('sub_type, entry_date, amount')
+    .in('sub_type', subTypes)
+    .gte('entry_date', `${year}-01-01`)
+    .lte('entry_date', `${year}-12-31`);
+
+  if (projectId) {
+    query = query.eq('project_id', projectId);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  const result: Record<string, Record<number, number>> = {};
+  for (const e of data) {
+    const st = e.sub_type as string;
+    if (!result[st]) result[st] = {};
+    const month = new Date(e.entry_date).getMonth() + 1;
+    result[st][month] = (result[st][month] || 0) + Number(e.amount);
+  }
+  return result;
+}
+
 export async function importSubEntries(entries: BdrSubEntryFormData[]): Promise<number> {
   if (entries.length === 0) return 0;
 
