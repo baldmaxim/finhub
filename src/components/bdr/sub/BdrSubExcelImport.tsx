@@ -158,8 +158,12 @@ export const BdrSubExcelImport = ({ subType, projectId, selectedMonth, year, onI
       }
     } catch (err) {
       console.error('Excel import error:', err);
-      const msg = err instanceof Error ? err.message : String(err);
-      message.error(`Ошибка импорта файла: ${msg}`);
+      const msg = err instanceof Error
+        ? err.message
+        : (typeof err === 'object' && err !== null && 'message' in err)
+          ? String((err as Record<string, unknown>).message)
+          : JSON.stringify(err);
+      message.error(`Ошибка импорта: ${msg}`);
     }
 
     if (inputRef.current) {
