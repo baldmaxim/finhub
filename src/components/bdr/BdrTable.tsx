@@ -151,10 +151,6 @@ export const BdrTable = ({ rows, yearRows, yearMonthSlots, overheadExpanded, cos
     return classes.join(' ');
   };
 
-  const scrollX = isMultiYear && yearMonthSlots
-    ? yearMonthSlots.length * 295 + 625
-    : 'max-content';
-
   return (
     <Table<BdrTableRow>
       columns={columns}
@@ -162,7 +158,7 @@ export const BdrTable = ({ rows, yearRows, yearMonthSlots, overheadExpanded, cos
       pagination={false}
       size="small"
       bordered
-      scroll={{ x: scrollX }}
+      scroll={{ x: 'max-content' }}
       sticky
       rowClassName={rowClassName}
       rowKey="key"

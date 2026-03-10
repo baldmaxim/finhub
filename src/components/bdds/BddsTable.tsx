@@ -207,10 +207,6 @@ export const BddsTable = ({ sections, yearSections, yearMonthSlots, expandedPare
     return [...nameCol, ...monthCols, ...totalCols];
   }, [onUpdateFact, expandedParents, onToggleParent, isMultiYear, yearMonthSlots]);
 
-  const scrollX = isMultiYear && yearMonthSlots
-    ? yearMonthSlots.length * 295 + 625
-    : 3860;
-
   return (
     <Table
       dataSource={dataSource}
@@ -218,7 +214,7 @@ export const BddsTable = ({ sections, yearSections, yearMonthSlots, expandedPare
       pagination={false}
       bordered
       size="small"
-      scroll={{ x: scrollX }}
+      scroll={{ x: 'max-content' }}
       sticky
       rowClassName={(record) => {
         if (record.isHeader) return 'bdds-section-header';
