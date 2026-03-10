@@ -16,8 +16,9 @@ const COLUMN_ALIASES: Record<string, string[]> = {
   company: ['фирма', 'company', 'компания', 'организация', 'контрагент'],
   department: ['отдел/сотрудник', 'отдел', 'сотрудник', 'department', 'employee'],
   description: ['содержание', 'description', 'описание', 'наименование', 'назначение'],
-  amount: ['сумма', 'amount', 'стоимость', 'итого'],
+  amount: ['сумма', 'amount', 'стоимость', 'итого', 'расходы с учетом офз'],
   date: ['дата', 'date'],
+  period: ['период', 'period', 'месяц'],
 };
 
 const findColumnValue = (row: Record<string, unknown>, aliases: string[]): unknown => {
@@ -64,9 +65,29 @@ interface IFailedRow {
   reason: string;
 }
 
+const MONTH_NAME_MAP: Record<string, number> = {
+  'январь': 1, 'февраль': 2, 'март': 3, 'апрель': 4,
+  'май': 5, 'июнь': 6, 'июль': 7, 'август': 8,
+  'сентябрь': 9, 'октябрь': 10, 'ноябрь': 11, 'декабрь': 12,
+};
+
+const parsePeriod = (raw: unknown): string => {
+  if (!raw) return '';
+  const str = String(raw).trim().toLowerCase();
+  for (const [name, num] of Object.entries(MONTH_NAME_MAP)) {
+    if (str.startsWith(name)) {
+      const yearMatch = str.match(/\d{4}/);
+      const y = yearMatch ? yearMatch[0] : String(new Date().getFullYear());
+      return `${y}-${String(num).padStart(2, '0')}-01`;
+    }
+  }
+  return parseDate(raw);
+};
+
 export const BdrSubExcelImport = ({ subType, projectId, selectedMonth, year, onImport }: IProps) => {
   const inputRef = useRef<HTMLInputElement>(null);
   const isOverheadLabor = subType === 'overhead_labor';
+  const isFixedExpenses = subType === 'fixed_expenses';
 
   const getEntryDate = (): string => {
     const month = selectedMonth ?? new Date().getMonth() + 1;
@@ -99,7 +120,22 @@ export const BdrSubExcelImport = ({ subType, projectId, selectedMonth, year, onI
           continue;
         }
 
-        if (isOverheadLabor) {
+        if (isFixedExpenses) {
+          const periodRaw = findColumnValue(row, COLUMN_ALIASES.period) ?? findColumnValue(row, COLUMN_ALIASES.date);
+          const entryDate = parsePeriod(periodRaw);
+          if (!entryDate) {
+            failedRows.push({ rowNum, reason: 'Не удалось распознать период' });
+            continue;
+          }
+          entries.push({
+            sub_type: subType,
+            project_id: projectId,
+            entry_date: entryDate,
+            company: '',
+            description: '',
+            amount,
+          });
+        } else if (isOverheadLabor) {
           const department = String(
             findColumnValue(row, COLUMN_ALIASES.department) ??
             findColumnValue(row, COLUMN_ALIASES.company) ?? ''
