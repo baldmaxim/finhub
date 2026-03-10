@@ -25,7 +25,7 @@ interface IUseBdrResult {
 
 type EntryMap = Map<string, MonthValues>;
 
-export function useBdr(year: number, projectId: string | null = null): IUseBdrResult {
+export function useBdr(yearFrom: number, yearTo: number, projectId: string | null = null): IUseBdrResult {
   const [planMap, setPlanMap] = useState<EntryMap>(new Map());
   const [factMap, setFactMap] = useState<EntryMap>(new Map());
   const [subTotals, setSubTotals] = useState<Record<string, MonthValues>>({});
@@ -57,54 +57,75 @@ export function useBdr(year: number, projectId: string | null = null): IUseBdrRe
       dirtyRef.current.clear();
 
       const pid = projectId || undefined;
-      const [planEntries, factEntries, smr, matTotals, laborTotals, subTotals, designTotals, rentalTotals, overheadLaborTotals, actTotals, smrAllTotal, cumBefore] =
-        await Promise.all([
-          bdrService.getEntries(year, 'plan', pid),
-          bdrService.getEntries(year, 'fact', pid),
-          bdrService.getSmrTotalsByMonth(year, pid),
-          bdrSubService.getSubTotalsByMonth('materials', year, pid),
-          bdrSubService.getSubTotalsByMonth('labor', year, pid),
-          bdrSubService.getSubTotalsByMonth('subcontract', year, pid),
-          bdrSubService.getSubTotalsByMonth('design', year, pid),
-          bdrSubService.getSubTotalsByMonth('rental', year, pid),
-          bdrSubService.getSubTotalsByMonth('overhead_labor', year, pid),
-          actualExecutionService.getAggregatedTotals(year, pid),
-          bdrService.getSmrAllYearsTotal(pid),
-          bdrService.getRevenueCumulativeBefore(year, pid),
-        ]);
+      const years: number[] = [];
+      for (let y = yearFrom; y <= yearTo; y++) years.push(y);
+
+      const smrAllTotal = await bdrService.getSmrAllYearsTotal(pid);
+      const cumBefore = await bdrService.getRevenueCumulativeBefore(yearFrom, pid);
 
       const pMap: EntryMap = new Map();
-      for (const e of planEntries) {
-        if (!pMap.has(e.row_code)) pMap.set(e.row_code, {});
-        pMap.get(e.row_code)![e.month] = Number(e.amount);
-      }
-
       const fMap: EntryMap = new Map();
-      for (const e of factEntries) {
-        if (!fMap.has(e.row_code)) fMap.set(e.row_code, {});
-        fMap.get(e.row_code)![e.month] = Number(e.amount);
+      const mergedSmr: MonthValues = {};
+      const mergedActual: ActualExecutionTotals = { ks: {}, fact: {} };
+      const mergedSub: Record<string, MonthValues> = {
+        cost_materials: {}, cost_labor: {}, cost_subcontract: {},
+        cost_design: {}, cost_rental: {}, overhead_01: {},
+      };
+
+      const addToMap = (map: EntryMap, key: string, month: number, amount: number) => {
+        if (!map.has(key)) map.set(key, {});
+        const m = map.get(key)!;
+        m[month] = (m[month] || 0) + amount;
+      };
+
+      const addToMonthValues = (target: MonthValues, source: MonthValues) => {
+        for (const m of MONTHS) {
+          target[m.key] = (target[m.key] || 0) + (source[m.key] || 0);
+        }
+      };
+
+      for (const yr of years) {
+        const [planEntries, factEntries, smr, mat, lab, sub, des, ren, ovl, act] =
+          await Promise.all([
+            bdrService.getEntries(yr, 'plan', pid),
+            bdrService.getEntries(yr, 'fact', pid),
+            bdrService.getSmrTotalsByMonth(yr, pid),
+            bdrSubService.getSubTotalsByMonth('materials', yr, pid),
+            bdrSubService.getSubTotalsByMonth('labor', yr, pid),
+            bdrSubService.getSubTotalsByMonth('subcontract', yr, pid),
+            bdrSubService.getSubTotalsByMonth('design', yr, pid),
+            bdrSubService.getSubTotalsByMonth('rental', yr, pid),
+            bdrSubService.getSubTotalsByMonth('overhead_labor', yr, pid),
+            actualExecutionService.getAggregatedTotals(yr, pid),
+          ]);
+
+        for (const e of planEntries) addToMap(pMap, e.row_code, e.month, Number(e.amount));
+        for (const e of factEntries) addToMap(fMap, e.row_code, e.month, Number(e.amount));
+
+        addToMonthValues(mergedSmr, smr);
+        addToMonthValues(mergedActual.ks, act.ks);
+        addToMonthValues(mergedActual.fact, act.fact);
+        addToMonthValues(mergedSub.cost_materials, mat);
+        addToMonthValues(mergedSub.cost_labor, lab);
+        addToMonthValues(mergedSub.cost_subcontract, sub);
+        addToMonthValues(mergedSub.cost_design, des);
+        addToMonthValues(mergedSub.cost_rental, ren);
+        addToMonthValues(mergedSub.overhead_01, ovl);
       }
 
       setPlanMap(pMap);
       setFactMap(fMap);
-      setSmrTotals(smr);
-      setActualTotals(actTotals);
+      setSmrTotals(mergedSmr);
+      setActualTotals(mergedActual);
       setSmrAllYearsTotal(smrAllTotal);
       setRevenueCumBefore(cumBefore);
-      setSubTotals({
-        cost_materials: matTotals,
-        cost_labor: laborTotals,
-        cost_subcontract: subTotals,
-        cost_design: designTotals,
-        cost_rental: rentalTotals,
-        overhead_01: overheadLaborTotals,
-      });
+      setSubTotals(mergedSub);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка загрузки данных');
     } finally {
       setLoading(false);
     }
-  }, [year, projectId]);
+  }, [yearFrom, yearTo, projectId]);
 
   useEffect(() => {
     loadData();
@@ -299,7 +320,7 @@ export function useBdr(year: number, projectId: string | null = null): IUseBdrRe
           const factAmount = factMap.get(def.code)?.[m.key] || 0;
 
           const base: { row_code: string; year: number; month: number; project_id?: string } = {
-            row_code: def.code, year, month: m.key,
+            row_code: def.code, year: yearFrom, month: m.key,
           };
           if (projectId) base.project_id = projectId;
 
@@ -319,7 +340,7 @@ export function useBdr(year: number, projectId: string | null = null): IUseBdrRe
     } finally {
       setSaving(false);
     }
-  }, [planMap, factMap, year, projectId]);
+  }, [planMap, factMap, yearFrom, projectId]);
 
   return {
     rows,

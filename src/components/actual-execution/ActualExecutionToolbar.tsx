@@ -1,7 +1,8 @@
 import { useRef } from 'react';
-import { Space, Select, Button, message } from 'antd';
+import { Space, Select, Button, Typography, message } from 'antd';
 import { UploadOutlined, DownloadOutlined, PlusOutlined } from '@ant-design/icons';
 import * as XLSX from 'xlsx';
+import { YearSelect } from '../common/YearSelect';
 import type { Project } from '../../types/projects';
 import type { ActualExecutionEntry } from '../../types/actualExecution';
 import { MONTHS } from '../../utils/constants';
@@ -10,6 +11,10 @@ interface IProps {
   projects: Project[];
   selectedProjectId: string | null;
   onProjectChange: (id: string | null) => void;
+  yearFrom: number;
+  yearTo: number;
+  onYearFromChange: (year: number) => void;
+  onYearToChange: (year: number) => void;
   onImport: (data: Array<{ monthKey: string; ksAmount: number; factAmount: number }>) => void;
   onAdd: () => void;
   entries: ActualExecutionEntry[];
@@ -69,6 +74,10 @@ export const ActualExecutionToolbar = ({
   projects,
   selectedProjectId,
   onProjectChange,
+  yearFrom,
+  yearTo,
+  onYearFromChange,
+  onYearToChange,
   onImport,
   onAdd,
   entries,
@@ -171,6 +180,10 @@ export const ActualExecutionToolbar = ({
         className="select-project-wide"
         options={projects.map((p) => ({ value: p.id, label: p.name }))}
       />
+      <Typography.Text>с</Typography.Text>
+      <YearSelect value={yearFrom} onChange={onYearFromChange} />
+      <Typography.Text>по</Typography.Text>
+      <YearSelect value={yearTo} onChange={onYearToChange} />
       <input
         ref={fileInputRef}
         type="file"

@@ -1,5 +1,5 @@
 import type { FC } from 'react';
-import { Space, Select } from 'antd';
+import { Space, Select, Typography } from 'antd';
 import { YearSelect } from '../common/YearSelect';
 import type { Project } from '../../types/projects';
 import type { GuaranteeStatus } from '../../types/guarantee';
@@ -8,8 +8,10 @@ interface IProps {
   projects: Project[];
   selectedProjectId: string | null;
   onProjectChange: (id: string | null) => void;
-  selectedYear: number;
-  onYearChange: (year: number) => void;
+  yearFrom: number;
+  yearTo: number;
+  onYearFromChange: (year: number) => void;
+  onYearToChange: (year: number) => void;
   statusFilter: GuaranteeStatus | 'all';
   onStatusChange: (status: GuaranteeStatus | 'all') => void;
 }
@@ -26,8 +28,10 @@ export const GuaranteeToolbar: FC<IProps> = ({
   projects,
   selectedProjectId,
   onProjectChange,
-  selectedYear,
-  onYearChange,
+  yearFrom,
+  yearTo,
+  onYearFromChange,
+  onYearToChange,
   statusFilter,
   onStatusChange,
 }) => {
@@ -45,7 +49,10 @@ export const GuaranteeToolbar: FC<IProps> = ({
         className="select-project"
         placeholder="Выберите проект"
       />
-      <YearSelect value={selectedYear} onChange={onYearChange} />
+      <Typography.Text>с</Typography.Text>
+      <YearSelect value={yearFrom} onChange={onYearFromChange} />
+      <Typography.Text>по</Typography.Text>
+      <YearSelect value={yearTo} onChange={onYearToChange} />
       <Select
         value={statusFilter}
         onChange={onStatusChange}

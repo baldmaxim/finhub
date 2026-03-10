@@ -1,15 +1,29 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Card, Spin, Alert, message } from 'antd';
 import { useBdds } from '../../hooks/useBdds';
 import { BddsToolbar } from './BddsToolbar';
 import { BddsTable } from './BddsTable';
 
-export const BddsPage = () => {
-  const [year, setYear] = useState(new Date().getFullYear());
-  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const { sections, loading, saving, error, expandedParents, toggleParent, updateFactEntry, saveAll } = useBdds(year, selectedProjectId);
+const currentYear = new Date().getFullYear();
 
-  const isReadOnly = !selectedProjectId;
+export const BddsPage = () => {
+  const [yearFrom, setYearFrom] = useState(currentYear);
+  const [yearTo, setYearTo] = useState(currentYear);
+  const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const { sections, loading, saving, error, expandedParents, toggleParent, updateFactEntry, saveAll } = useBdds(yearFrom, yearTo, selectedProjectId);
+
+  const isMultiYear = yearFrom !== yearTo;
+  const isReadOnly = !selectedProjectId || isMultiYear;
+
+  const handleYearFromChange = useCallback((y: number) => {
+    setYearFrom(y);
+    if (y > yearTo) setYearTo(y);
+  }, [yearTo]);
+
+  const handleYearToChange = useCallback((y: number) => {
+    setYearTo(y);
+    if (y < yearFrom) setYearFrom(y);
+  }, [yearFrom]);
 
   const handleSave = async () => {
     try {
@@ -27,8 +41,10 @@ export const BddsPage = () => {
   return (
     <Card title="БДДС — Бюджет движения денежных средств">
       <BddsToolbar
-        year={year}
-        onYearChange={setYear}
+        yearFrom={yearFrom}
+        yearTo={yearTo}
+        onYearFromChange={handleYearFromChange}
+        onYearToChange={handleYearToChange}
         onSave={handleSave}
         saving={saving}
         selectedProjectId={selectedProjectId}

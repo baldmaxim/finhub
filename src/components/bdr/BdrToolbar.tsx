@@ -1,23 +1,31 @@
-import { Button, Space } from 'antd';
+import { Button, Space, Typography } from 'antd';
 import { SaveOutlined } from '@ant-design/icons';
 import { YearSelect } from '../common/YearSelect';
 import { ProjectSelect } from '../common/ProjectSelect';
 
 interface IProps {
-  year: number;
-  onYearChange: (year: number) => void;
+  yearFrom: number;
+  yearTo: number;
+  onYearFromChange: (year: number) => void;
+  onYearToChange: (year: number) => void;
   onSave: () => void;
   saving: boolean;
   selectedProjectId: string | null;
   onProjectChange: (projectId: string | null) => void;
 }
 
-export const BdrToolbar = ({ year, onYearChange, onSave, saving, selectedProjectId, onProjectChange }: IProps) => {
+export const BdrToolbar = ({
+  yearFrom, yearTo, onYearFromChange, onYearToChange,
+  onSave, saving, selectedProjectId, onProjectChange,
+}: IProps) => {
   return (
     <Space className="mb-16" wrap>
       <ProjectSelect value={selectedProjectId} onChange={onProjectChange} />
-      <YearSelect value={year} onChange={onYearChange} />
-      {selectedProjectId && (
+      <Typography.Text>с</Typography.Text>
+      <YearSelect value={yearFrom} onChange={onYearFromChange} />
+      <Typography.Text>по</Typography.Text>
+      <YearSelect value={yearTo} onChange={onYearToChange} />
+      {selectedProjectId && yearFrom === yearTo && (
         <Button
           type="primary"
           icon={<SaveOutlined />}

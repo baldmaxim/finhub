@@ -9,8 +9,10 @@ interface IUseGuaranteeResult {
   projects: Project[];
   selectedProjectId: string | null;
   setSelectedProjectId: (id: string | null) => void;
-  selectedYear: number;
-  setSelectedYear: (year: number) => void;
+  yearFrom: number;
+  yearTo: number;
+  setYearFrom: (year: number) => void;
+  setYearTo: (year: number) => void;
   statusFilter: GuaranteeStatus | 'all';
   setStatusFilter: (status: GuaranteeStatus | 'all') => void;
   loading: boolean;
@@ -42,15 +44,32 @@ function getRowStatus(months: GuaranteeMonthData[]): GuaranteeStatus {
   return 'pending';
 }
 
+function matchesYearRange(monthKey: string, yearFrom: number, yearTo: number): boolean {
+  const year = parseInt(monthKey.split('-')[0], 10);
+  return year >= yearFrom && year <= yearTo;
+}
+
 export function useGuarantee(): IUseGuaranteeResult {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const currentYear = new Date().getFullYear();
+  const [yearFrom, setYearFromState] = useState(currentYear);
+  const [yearTo, setYearToState] = useState(currentYear);
   const [statusFilter, setStatusFilter] = useState<GuaranteeStatus | 'all'>('all');
   const [planEntries, setPlanEntries] = useState<Array<{ project_id: string; work_type_code: string; month_key: string; amount: number }>>([]);
   const [facts, setFacts] = useState<GuaranteeFact[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const setYearFrom = useCallback((y: number) => {
+    setYearFromState(y);
+    setYearToState((prev) => (y > prev ? y : prev));
+  }, []);
+
+  const setYearTo = useCallback((y: number) => {
+    setYearToState(y);
+    setYearFromState((prev) => (y < prev ? y : prev));
+  }, []);
 
   const loadData = useCallback(async () => {
     try {
@@ -90,12 +109,12 @@ export function useGuarantee(): IUseGuaranteeResult {
 
       const monthKeys = new Set<string>();
       for (const e of projectPlan) {
-        if (e.month_key.startsWith(`${selectedYear}-`)) {
+        if (matchesYearRange(e.month_key, yearFrom, yearTo)) {
           monthKeys.add(e.month_key);
         }
       }
       for (const f of projectFacts) {
-        if (f.month_key.startsWith(`${selectedYear}-`)) {
+        if (matchesYearRange(f.month_key, yearFrom, yearTo)) {
           monthKeys.add(f.month_key);
         }
       }
@@ -149,7 +168,7 @@ export function useGuarantee(): IUseGuaranteeResult {
     }
 
     return result;
-  }, [planEntries, facts, projects, selectedYear, statusFilter]);
+  }, [planEntries, facts, projects, yearFrom, yearTo, statusFilter]);
 
   const saveFact = useCallback(async (data: GuaranteeFactFormData) => {
     await guaranteeService.upsertFact(data);
@@ -166,8 +185,10 @@ export function useGuarantee(): IUseGuaranteeResult {
     projects,
     selectedProjectId,
     setSelectedProjectId,
-    selectedYear,
-    setSelectedYear,
+    yearFrom,
+    yearTo,
+    setYearFrom,
+    setYearTo,
     statusFilter,
     setStatusFilter,
     loading,

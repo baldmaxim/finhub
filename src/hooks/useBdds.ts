@@ -16,7 +16,7 @@ interface IUseBddsResult {
   saveAll: () => Promise<void>;
 }
 
-export function useBdds(year: number, projectId: string | null = null): IUseBddsResult {
+export function useBdds(yearFrom: number, yearTo: number, projectId: string | null = null): IUseBddsResult {
   const [sections, setSections] = useState<BddsSection[]>([]);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -150,38 +150,47 @@ export function useBdds(year: number, projectId: string | null = null): IUseBdds
       dirtyFactRef.current.clear();
 
       const pid = projectId || undefined;
-      const [categories, planEntries, factEntries, incomeTotals] = await Promise.all([
-        bddsService.getCategories(),
-        bddsService.getEntries(year, 'plan', pid),
-        bddsService.getEntries(year, 'fact', pid),
-        bddsIncomeService.getIncomeTotalsByMonth(year, pid),
-      ]);
+      const years: number[] = [];
+      for (let y = yearFrom; y <= yearTo; y++) years.push(y);
 
-      categoriesRef.current = categories;
+      const categories = await bddsService.getCategories();
 
       const planMap = new Map<string, MonthValues>();
-      for (const entry of planEntries) {
-        if (!planMap.has(entry.category_id)) {
-          planMap.set(entry.category_id, {});
-        }
-        planMap.get(entry.category_id)![entry.month] = Number(entry.amount);
-      }
-
       const factMap = new Map<string, MonthValues>();
-      for (const entry of factEntries) {
-        if (!factMap.has(entry.category_id)) {
-          factMap.set(entry.category_id, {});
+      const incomeTotals: MonthValues = {};
+
+      for (const yr of years) {
+        const [planEntries, factEntries, yearIncomeTotals] = await Promise.all([
+          bddsService.getEntries(yr, 'plan', pid),
+          bddsService.getEntries(yr, 'fact', pid),
+          bddsIncomeService.getIncomeTotalsByMonth(yr, pid),
+        ]);
+
+        for (const entry of planEntries) {
+          if (!planMap.has(entry.category_id)) planMap.set(entry.category_id, {});
+          const m = planMap.get(entry.category_id)!;
+          m[entry.month] = (m[entry.month] || 0) + Number(entry.amount);
         }
-        factMap.get(entry.category_id)![entry.month] = Number(entry.amount);
+
+        for (const entry of factEntries) {
+          if (!factMap.has(entry.category_id)) factMap.set(entry.category_id, {});
+          const m = factMap.get(entry.category_id)!;
+          m[entry.month] = (m[entry.month] || 0) + Number(entry.amount);
+        }
+
+        for (const month of MONTHS) {
+          incomeTotals[month.key] = (incomeTotals[month.key] || 0) + (yearIncomeTotals[month.key] || 0);
+        }
       }
 
+      categoriesRef.current = categories;
       setSections(buildSections(categories, planMap, factMap, incomeTotals));
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка загрузки данных');
     } finally {
       setLoading(false);
     }
-  }, [year, projectId, buildSections]);
+  }, [yearFrom, yearTo, projectId, buildSections]);
 
   useEffect(() => {
     loadData();
@@ -283,7 +292,7 @@ export function useBdds(year: number, projectId: string | null = null): IUseBdds
               if (amount !== 0 || dirtyFactRef.current.has(`${r.categoryId}_${m.key}`)) {
                 const entry: typeof entries[number] = {
                   category_id: r.categoryId,
-                  year,
+                  year: yearFrom,
                   month: m.key,
                   amount,
                   entry_type: 'fact',
@@ -301,7 +310,7 @@ export function useBdds(year: number, projectId: string | null = null): IUseBdds
     } finally {
       setSaving(false);
     }
-  }, [sections, year, projectId]);
+  }, [sections, yearFrom, projectId]);
 
   return { sections, loading, saving, error, expandedParents, toggleParent, updateFactEntry, saveAll };
 }

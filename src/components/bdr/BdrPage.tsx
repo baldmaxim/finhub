@@ -1,12 +1,15 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Card, Alert, message } from 'antd';
 import { useBdr } from '../../hooks/useBdr';
 import { BdrToolbar } from './BdrToolbar';
 import { BdrTable } from './BdrTable';
 import { BdrSubModal } from './sub/BdrSubModal';
 
+const currentYear = new Date().getFullYear();
+
 export const BdrPage = () => {
-  const [year, setYear] = useState(new Date().getFullYear());
+  const [yearFrom, setYearFrom] = useState(currentYear);
+  const [yearTo, setYearTo] = useState(currentYear);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const {
     rows,
@@ -22,9 +25,20 @@ export const BdrPage = () => {
     openSubType,
     setOpenSubType,
     reload,
-  } = useBdr(year, selectedProjectId);
+  } = useBdr(yearFrom, yearTo, selectedProjectId);
 
-  const isReadOnly = !selectedProjectId;
+  const isMultiYear = yearFrom !== yearTo;
+  const isReadOnly = !selectedProjectId || isMultiYear;
+
+  const handleYearFromChange = useCallback((y: number) => {
+    setYearFrom(y);
+    if (y > yearTo) setYearTo(y);
+  }, [yearTo]);
+
+  const handleYearToChange = useCallback((y: number) => {
+    setYearTo(y);
+    if (y < yearFrom) setYearFrom(y);
+  }, [yearFrom]);
 
   const handleSave = async () => {
     try {
@@ -48,8 +62,10 @@ export const BdrPage = () => {
     <>
       <Card title="БДР — Бюджет Доходов и Расходов" loading={loading}>
         <BdrToolbar
-          year={year}
-          onYearChange={setYear}
+          yearFrom={yearFrom}
+          yearTo={yearTo}
+          onYearFromChange={handleYearFromChange}
+          onYearToChange={handleYearToChange}
           onSave={handleSave}
           saving={saving}
           selectedProjectId={selectedProjectId}
@@ -69,7 +85,7 @@ export const BdrPage = () => {
       {openSubType && (
         <BdrSubModal
           subType={openSubType}
-          year={year}
+          year={yearFrom}
           onClose={handleSubClose}
         />
       )}

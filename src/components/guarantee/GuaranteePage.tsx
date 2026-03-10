@@ -14,8 +14,10 @@ export const GuaranteePage = () => {
     projects,
     selectedProjectId,
     setSelectedProjectId,
-    selectedYear,
-    setSelectedYear,
+    yearFrom,
+    yearTo,
+    setYearFrom,
+    setYearTo,
     statusFilter,
     setStatusFilter,
     loading,
@@ -48,8 +50,10 @@ export const GuaranteePage = () => {
         projects={projects}
         selectedProjectId={selectedProjectId}
         onProjectChange={setSelectedProjectId}
-        selectedYear={selectedYear}
-        onYearChange={setSelectedYear}
+        yearFrom={yearFrom}
+        yearTo={yearTo}
+        onYearFromChange={setYearFrom}
+        onYearToChange={setYearTo}
         statusFilter={statusFilter}
         onStatusChange={setStatusFilter}
       />
@@ -64,7 +68,7 @@ export const GuaranteePage = () => {
           onDeleteFact={deleteFact}
         />
       ) : (
-        <GuaranteeChart rows={rows} selectedYear={selectedYear} />
+        <GuaranteeChart rows={rows} selectedYear={yearFrom} />
       )}
     </Card>
   );

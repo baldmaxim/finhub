@@ -20,7 +20,7 @@ interface IUseBddsIncomeResult {
   reload: () => Promise<void>;
 }
 
-export function useBddsIncome(): IUseBddsIncomeResult {
+export function useBddsIncome(yearFrom: number, yearTo: number): IUseBddsIncomeResult {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [entries, setEntries] = useState<Array<{ project_id: string; work_type_code: string; month_key: string; amount: number }>>([]);
@@ -53,13 +53,20 @@ export function useBddsIncome(): IUseBddsIncomeResult {
     loadData();
   }, [loadData]);
 
+  const filteredEntries = useMemo(() => {
+    return entries.filter((e) => {
+      const year = parseInt(e.month_key.split('-')[0], 10);
+      return year >= yearFrom && year <= yearTo;
+    });
+  }, [entries, yearFrom, yearTo]);
+
   const monthKeys = useMemo(() => {
     const keys = new Set<string>();
-    for (const e of entries) {
+    for (const e of filteredEntries) {
       keys.add(e.month_key);
     }
     return Array.from(keys).sort();
-  }, [entries]);
+  }, [filteredEntries]);
 
   const rows = useMemo((): IncomeTableRow[] => {
     const result: IncomeTableRow[] = [];
@@ -114,7 +121,7 @@ export function useBddsIncome(): IUseBddsIncomeResult {
         }
       } else {
         // Данные из entries
-        const wtEntries = entries.filter((e) => e.work_type_code === wt.code);
+        const wtEntries = filteredEntries.filter((e) => e.work_type_code === wt.code);
         for (const e of wtEntries) {
           row[e.month_key] = Number(e.amount);
         }
@@ -124,16 +131,16 @@ export function useBddsIncome(): IUseBddsIncomeResult {
     }
 
     return result;
-  }, [entries, notes, monthKeys]);
+  }, [filteredEntries, notes, monthKeys]);
 
   function calcGroupSum(codes: string[], monthKey: string): number {
-    return entries
+    return filteredEntries
       .filter((e) => codes.includes(e.work_type_code) && e.month_key === monthKey)
       .reduce((sum, e) => sum + Number(e.amount), 0);
   }
 
   function calcCodeSum(code: string, monthKey: string): number {
-    return entries
+    return filteredEntries
       .filter((e) => e.work_type_code === code && e.month_key === monthKey)
       .reduce((sum, e) => sum + Number(e.amount), 0);
   }

@@ -1,11 +1,16 @@
-import { useState } from 'react';
+import { useState, useCallback } from 'react';
 import { Card, Spin, Alert, message, Modal, Form, InputNumber, DatePicker } from 'antd';
 import dayjs from 'dayjs';
 import { useActualExecution } from '../../hooks/useActualExecution';
 import { ActualExecutionToolbar } from './ActualExecutionToolbar';
 import { ActualExecutionTable } from './ActualExecutionTable';
 
+const currentYear = new Date().getFullYear();
+
 export const ActualExecutionPage = () => {
+  const [yearFrom, setYearFrom] = useState(currentYear);
+  const [yearTo, setYearTo] = useState(currentYear);
+
   const {
     entries,
     projects,
@@ -16,10 +21,20 @@ export const ActualExecutionPage = () => {
     importFromExcel,
     addEntry,
     deleteEntry,
-  } = useActualExecution();
+  } = useActualExecution(yearFrom, yearTo);
 
   const [addModalOpen, setAddModalOpen] = useState(false);
   const [form] = Form.useForm();
+
+  const handleYearFromChange = useCallback((y: number) => {
+    setYearFrom(y);
+    if (y > yearTo) setYearTo(y);
+  }, [yearTo]);
+
+  const handleYearToChange = useCallback((y: number) => {
+    setYearTo(y);
+    if (y < yearFrom) setYearFrom(y);
+  }, [yearFrom]);
 
   const handleImport = async (
     data: Array<{ monthKey: string; ksAmount: number; factAmount: number }>
@@ -77,6 +92,10 @@ export const ActualExecutionPage = () => {
           projects={projects}
           selectedProjectId={selectedProjectId}
           onProjectChange={setSelectedProjectId}
+          yearFrom={yearFrom}
+          yearTo={yearTo}
+          onYearFromChange={handleYearFromChange}
+          onYearToChange={handleYearToChange}
           onImport={handleImport}
           onAdd={() => setAddModalOpen(true)}
           entries={entries}

@@ -1,3 +1,4 @@
+import { useState, useCallback } from 'react';
 import { Card, Spin, Alert, message, Button } from 'antd';
 import { ArrowLeftOutlined } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
@@ -6,8 +7,13 @@ import { BddsIncomeToolbar } from './BddsIncomeToolbar';
 import { BddsIncomeTable } from './BddsIncomeTable';
 import type { ExcelImportData } from '../../../types/bddsIncome';
 
+const currentYear = new Date().getFullYear();
+
 export const BddsIncomePage = () => {
   const navigate = useNavigate();
+  const [yearFrom, setYearFrom] = useState(currentYear);
+  const [yearTo, setYearTo] = useState(currentYear);
+
   const {
     rows,
     monthKeys,
@@ -17,7 +23,17 @@ export const BddsIncomePage = () => {
     loading,
     error,
     importData,
-  } = useBddsIncome();
+  } = useBddsIncome(yearFrom, yearTo);
+
+  const handleYearFromChange = useCallback((y: number) => {
+    setYearFrom(y);
+    if (y > yearTo) setYearTo(y);
+  }, [yearTo]);
+
+  const handleYearToChange = useCallback((y: number) => {
+    setYearTo(y);
+    if (y < yearFrom) setYearFrom(y);
+  }, [yearFrom]);
 
   const handleImport = async (data: ExcelImportData[]) => {
     if (!selectedProjectId) {
@@ -54,6 +70,10 @@ export const BddsIncomePage = () => {
         projects={projects}
         selectedProjectId={selectedProjectId}
         onProjectChange={setSelectedProjectId}
+        yearFrom={yearFrom}
+        yearTo={yearTo}
+        onYearFromChange={handleYearFromChange}
+        onYearToChange={handleYearToChange}
         onImport={handleImport}
       />
       {loading ? (
@@ -65,4 +85,4 @@ export const BddsIncomePage = () => {
       )}
     </Card>
   );
-}
+};

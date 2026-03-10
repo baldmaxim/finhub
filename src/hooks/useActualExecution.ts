@@ -25,7 +25,7 @@ interface IUseActualExecutionResult {
   reload: () => Promise<void>;
 }
 
-export function useActualExecution(): IUseActualExecutionResult {
+export function useActualExecution(yearFrom: number, yearTo: number): IUseActualExecutionResult {
   const [projects, setProjects] = useState<Project[]>([]);
   const [allEntries, setAllEntries] = useState<ActualExecutionEntry[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -56,9 +56,15 @@ export function useActualExecution(): IUseActualExecutionResult {
   }, [loadData]);
 
   const entries = useMemo(() => {
-    if (!selectedProjectId) return allEntries;
-    return allEntries.filter((e) => e.project_id === selectedProjectId);
-  }, [allEntries, selectedProjectId]);
+    let filtered = allEntries.filter((e) => {
+      const year = parseInt(e.month_key.split('-')[0], 10);
+      return year >= yearFrom && year <= yearTo;
+    });
+    if (selectedProjectId) {
+      filtered = filtered.filter((e) => e.project_id === selectedProjectId);
+    }
+    return filtered;
+  }, [allEntries, selectedProjectId, yearFrom, yearTo]);
 
   const importFromExcel = useCallback(
     async (
