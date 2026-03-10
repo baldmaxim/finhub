@@ -96,12 +96,68 @@ export const BdrSubExcelImport = ({ subType, projectId, selectedMonth, year, onI
     return `${year}-${String(month).padStart(2, '0')}-01`;
   };
 
+  const allAliases = Object.values(COLUMN_ALIASES).flat();
+
+  const hasKnownColumns = (row: Record<string, unknown>): boolean => {
+    const keys = Object.keys(row).map(normalizeKey);
+    return keys.some((k) => allAliases.includes(k));
+  };
+
+  const readSheetWithHeaderDetection = (sheet: XLSX.WorkSheet): Record<string, unknown>[] => {
+    // Попытка 1: стандартное чтение (заголовки в 1й строке)
+    const standard = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
+    if (standard.length > 0 && hasKnownColumns(standard[0])) {
+      return standard;
+    }
+
+    // Попытка 2: сканируем первые 10 строк в поисках строки-заголовка
+    const rawRows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1 });
+    for (let r = 0; r < Math.min(rawRows.length, 10); r++) {
+      const cells = rawRows[r];
+      if (!Array.isArray(cells)) continue;
+      const normalized = cells.map((c) => normalizeKey(String(c ?? '')));
+      const matchCount = normalized.filter((n) => allAliases.includes(n)).length;
+      if (matchCount >= 1) {
+        // Нашли строку-заголовок — собираем данные из последующих строк
+        const headers = cells.map((c) => String(c ?? '').trim());
+        const result: Record<string, unknown>[] = [];
+        for (let d = r + 1; d < rawRows.length; d++) {
+          const dataRow = rawRows[d];
+          if (!Array.isArray(dataRow) || dataRow.every((c) => c === null || c === undefined || c === '')) continue;
+          const obj: Record<string, unknown> = {};
+          for (let col = 0; col < headers.length; col++) {
+            if (headers[col]) obj[headers[col]] = dataRow[col];
+          }
+          result.push(obj);
+        }
+        return result;
+      }
+    }
+
+    // Попытка 3: позиционный парсинг (без заголовков)
+    const positional: Record<string, unknown>[] = [];
+    const startRow = standard.length > 0 ? 0 : 1;
+    for (let r = startRow; r < rawRows.length; r++) {
+      const cells = rawRows[r];
+      if (!Array.isArray(cells) || cells.length < 2) continue;
+      // Первая ячейка — период, последняя числовая — сумма
+      const firstCell = cells[0];
+      const lastCell = cells[cells.length - 1];
+      if (!firstCell || !lastCell) continue;
+      positional.push({
+        'Период': firstCell,
+        'Расходы с учетом ОФЗ': lastCell,
+      });
+    }
+    return positional;
+  };
+
   const handleFile = async (file: File) => {
     try {
       const data = await file.arrayBuffer();
       const workbook = XLSX.read(data, { type: 'array', cellDates: true });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
+      const jsonData = readSheetWithHeaderDetection(sheet);
 
       if (jsonData.length === 0) {
         message.warning('Файл пуст или не содержит данных');
