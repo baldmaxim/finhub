@@ -35,7 +35,14 @@ const findColumnValue = (row: Record<string, unknown>, aliases: string[]): unkno
 const parseAmount = (raw: unknown): number => {
   if (typeof raw === 'number') return raw;
   if (typeof raw === 'string') {
-    const cleaned = raw.replace(/\s/g, '').replace(',', '.');
+    let cleaned = raw.replace(/\s/g, '');
+    // "278,865.89" — запятая = разделитель тысяч, точка = десятичный
+    if (cleaned.includes(',') && cleaned.includes('.')) {
+      cleaned = cleaned.replace(/,/g, '');
+    } else {
+      // "1 234,56" — запятая = десятичный разделитель
+      cleaned = cleaned.replace(',', '.');
+    }
     const num = Number(cleaned);
     return isNaN(num) ? 0 : num;
   }
@@ -229,7 +236,8 @@ export const BdrSubExcelImport = ({ subType, projectId, selectedMonth, year, onI
 
       if (entries.length === 0) {
         const cols = Object.keys(jsonData[0]).join(', ');
-        message.warning(`Не найдено записей. Колонки в файле: ${cols}`);
+        const reasons = failedRows.slice(0, 3).map((f) => `Строка ${f.rowNum}: ${f.reason}`).join('; ');
+        message.warning(`Не найдено записей. Колонки: ${cols}. ${reasons}`, 8);
         return;
       }
 
