@@ -89,7 +89,7 @@ export function useBdr(yearFrom: number, yearTo: number, projectId: string | nul
             bdrSubService.getSubTotalsByMonth('subcontract', yr, pid),
             bdrSubService.getSubTotalsByMonth('design', yr, pid),
             bdrSubService.getSubTotalsByMonth('rental', yr, pid),
-            bdrSubService.getSubTotalsByMonth('fixed_expenses', yr, pid),
+            bdrSubService.getFixedExpensesTotalsByMonth(yr, pid),
             bdrSubService.getMultiSubTotalsByMonth(overheadSubTypes, yr, pid),
             actualExecutionService.getAggregatedTotals(yr, pid),
           ]);

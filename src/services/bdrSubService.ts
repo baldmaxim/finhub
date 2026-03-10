@@ -151,6 +151,35 @@ export async function deleteSubEntriesByPeriod(
   }
 }
 
+export async function getFixedExpensesTotalsByMonth(
+  year: number,
+  projectId?: string
+): Promise<Record<number, number>> {
+  let query = supabase
+    .from('bdr_sub_entries')
+    .select('entry_date, amount, description')
+    .eq('sub_type', 'fixed_expenses')
+    .gte('entry_date', `${year}-01-01`)
+    .lte('entry_date', `${year}-12-31`);
+
+  if (projectId) {
+    query = query.eq('project_id', projectId);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  const totals: Record<number, number> = {};
+  for (const e of data) {
+    const month = new Date(e.entry_date).getMonth() + 1;
+    const amount = Number(e.amount) || 0;
+    const ofz = Number(e.description) || 0;
+    const value = ofz ? amount / ofz : amount;
+    totals[month] = (totals[month] || 0) + value;
+  }
+  return totals;
+}
+
 export async function importSubEntries(entries: BdrSubEntryFormData[]): Promise<number> {
   if (entries.length === 0) return 0;
 
