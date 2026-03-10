@@ -54,6 +54,7 @@ body {
   background-color: #fff7e6 !important;
   font-size: 11px;
   white-space: nowrap;
+  border-right: 2px solid #d9d9d9 !important;
 }
 
 /* Итоговая колонка */
@@ -61,6 +62,16 @@ body {
   background-color: #fafafa !important;
   font-weight: 600;
   white-space: nowrap;
+}
+
+/* Левая граница первого столбца блока Итого */
+.bdds-total-border-left {
+  border-left: 2px solid #bfbfbf !important;
+}
+
+/* Столбцы месяцев в таблице доходов */
+.bdds-income-month-cell {
+  border-right: 2px solid #d9d9d9 !important;
 }
 
 /* Неактивные пользователи */

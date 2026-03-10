@@ -138,7 +138,7 @@ export const buildTotalColumns = (): ColumnsType<BddsTableRow> => {
           key: 'plan_total',
           width: 90,
           align: 'right',
-          className: 'bdds-total-cell',
+          className: 'bdds-total-cell bdds-total-border-left',
           render: (value: number, record: BddsTableRow) => {
             if (record.isHeader) return null;
             return (

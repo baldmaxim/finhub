@@ -53,6 +53,7 @@ export const BddsIncomeTable = ({ rows, monthKeys }: IProps) => {
         key: mk,
         width: 120,
         align: 'right',
+        className: 'bdds-income-month-cell',
         render: (value: unknown, record: IncomeTableRow) => {
           if (record.isHeader) return null;
           const num = typeof value === 'number' ? value : 0;

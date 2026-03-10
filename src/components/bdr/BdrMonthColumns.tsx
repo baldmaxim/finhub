@@ -151,7 +151,7 @@ export const buildBdrTotalColumns = (): ColumnsType<BdrTableRow> => {
           key: 'plan_total',
           width: 90,
           align: 'right',
-          className: 'bdds-total-cell',
+          className: 'bdds-total-cell bdds-total-border-left',
           render: (value: number, record: BdrTableRow) => {
             if (record.isHeader || record.noPlan) return null;
             if (record.isPercent) return null;
