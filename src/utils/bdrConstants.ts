@@ -26,6 +26,7 @@ export const BDR_ROWS: BdrRowDef[] = [
   { code: 'profit_before_tax', name: 'Прибыль (Убыток) до налогообложение', isCalculated: true },
   { code: 'income_tax', name: 'Налог на прибыль' },
   { code: 'net_profit', name: 'Чистая прибыль', isCalculated: true },
+  { code: 'net_profit_margin', name: 'Рентабельность по чистой прибыли (Net Profit Margin)', isPercent: true, isCalculated: true },
   { code: 'dividends', name: 'Дивиденды и прочее распределение прибыли' },
 ];
 

@@ -222,6 +222,11 @@ export function useBdr(yearFrom: number, yearTo: number, projectId: string | nul
             return calcMonthVal('operating_profit', month, type) + getVal('other_income_expense', month, type);
           case 'net_profit':
             return calcMonthVal('profit_before_tax', month, type) - getVal('income_tax', month, type);
+          case 'net_profit_margin': {
+            const rev = calcMonthVal('revenue', month, type);
+            if (!rev) return 0;
+            return (calcMonthVal('net_profit', month, type) / rev) * 100;
+          }
           default:
             return getVal(code, month, type);
         }
