@@ -10,34 +10,52 @@ interface IProps {
   onImport: (data: ExcelImportData[]) => void;
 }
 
-function parseMonthHeader(header: string): string | null {
-  const trimmed = header.trim();
+const MONTH_NAMES: Record<string, string> = {
+  'январь': '01', 'янв': '01', 'jan': '01', 'january': '01',
+  'февраль': '02', 'фев': '02', 'feb': '02', 'february': '02',
+  'март': '03', 'мар': '03', 'mar': '03', 'march': '03',
+  'апрель': '04', 'апр': '04', 'apr': '04', 'april': '04',
+  'май': '05', 'may': '05',
+  'июнь': '06', 'июн': '06', 'jun': '06', 'june': '06',
+  'июль': '07', 'июл': '07', 'jul': '07', 'july': '07',
+  'август': '08', 'авг': '08', 'aug': '08', 'august': '08',
+  'сентябрь': '09', 'сен': '09', 'sep': '09', 'september': '09',
+  'октябрь': '10', 'окт': '10', 'oct': '10', 'october': '10',
+  'ноябрь': '11', 'ноя': '11', 'nov': '11', 'november': '11',
+  'декабрь': '12', 'дек': '12', 'dec': '12', 'december': '12',
+};
 
-  // Формат: "Янв 2026", "Февраль 2026", "01.2026", "2026-01"
+function dateToMonthKey(d: Date): string | null {
+  const y = d.getFullYear();
+  if (y < 2000 || y > 2100) return null;
+  return `${y}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+}
+
+function parseMonthHeader(header: unknown): string | null {
+  // Date-объект (cellDates: true)
+  if (header instanceof Date) return dateToMonthKey(header);
+
+  // Excel serial date (число)
+  if (typeof header === 'number' && header > 30000 && header < 70000) {
+    const d = new Date((header - 25569) * 86400000);
+    return dateToMonthKey(d);
+  }
+
+  const trimmed = String(header ?? '').trim();
+  if (!trimmed) return null;
+
+  // "2026-01"
   const isoMatch = trimmed.match(/^(\d{4})-(\d{2})$/);
   if (isoMatch) return `${isoMatch[1]}-${isoMatch[2]}`;
 
+  // "01.2026"
   const dotMatch = trimmed.match(/^(\d{2})\.(\d{4})$/);
   if (dotMatch) return `${dotMatch[2]}-${dotMatch[1]}`;
 
-  const monthNames: Record<string, string> = {
-    'январь': '01', 'янв': '01', 'jan': '01',
-    'февраль': '02', 'фев': '02', 'feb': '02',
-    'март': '03', 'мар': '03', 'mar': '03',
-    'апрель': '04', 'апр': '04', 'apr': '04',
-    'май': '05', 'may': '05',
-    'июнь': '06', 'июн': '06', 'jun': '06',
-    'июль': '07', 'июл': '07', 'jul': '07',
-    'август': '08', 'авг': '08', 'aug': '08',
-    'сентябрь': '09', 'сен': '09', 'sep': '09',
-    'октябрь': '10', 'окт': '10', 'oct': '10',
-    'ноябрь': '11', 'ноя': '11', 'nov': '11',
-    'декабрь': '12', 'дек': '12', 'dec': '12',
-  };
-
-  const textMatch = trimmed.toLowerCase().match(/^(\S+)\s+(\d{4})$/);
+  // "Янв 2026", "Январь 2026", "Янв. 2026"
+  const textMatch = trimmed.toLowerCase().match(/^([a-zа-яё]+)\.?\s+(\d{4})$/);
   if (textMatch) {
-    const monthNum = monthNames[textMatch[1]];
+    const monthNum = MONTH_NAMES[textMatch[1]];
     if (monthNum) return `${textMatch[2]}-${monthNum}`;
   }
 
@@ -55,7 +73,7 @@ export const ExcelImportButton = ({ disabled, onImport }: IProps) => {
     reader.onload = (evt) => {
       try {
         const data = new Uint8Array(evt.target?.result as ArrayBuffer);
-        const workbook = XLSX.read(data, { type: 'array' });
+        const workbook = XLSX.read(data, { type: 'array', cellDates: true });
         const sheet = workbook.Sheets[workbook.SheetNames[0]];
         const jsonData = XLSX.utils.sheet_to_json<string[]>(sheet, { header: 1 });
 
@@ -69,7 +87,7 @@ export const ExcelImportButton = ({ disabled, onImport }: IProps) => {
         const monthColumns: Array<{ index: number; key: string }> = [];
 
         for (let i = 2; i < headers.length; i++) {
-          const mk = parseMonthHeader(String(headers[i] || ''));
+          const mk = parseMonthHeader(headers[i]);
           if (mk) {
             monthColumns.push({ index: i, key: mk });
           }
