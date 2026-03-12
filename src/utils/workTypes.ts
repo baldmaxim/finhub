@@ -15,13 +15,13 @@ export const WORK_TYPES: WorkType[] = [
   { code: 'engineering', name: 'Внутренние инженерные системы', group: 'smr' },
   { code: 'landscaping', name: 'Благоустройство', group: 'smr' },
   { code: 'external_networks', name: 'Наружные сети', group: 'smr' },
-  { code: 'total_smr', name: 'Всего СМР по проекту', isCalculated: true },
-  { code: 'total_smr_no_vat', name: 'Всего СМР по проекту без НДС', isCalculated: true },
+  { code: 'total_smr', name: 'Всего СМР по проекту', group: 'total', isBold: true },
+  { code: 'total_smr_no_vat', name: 'Всего СМР по проекту без НДС', group: 'total', isBold: true },
   { code: 'advance_income', name: 'Аванс (Приход)', group: 'finance' },
   { code: 'advance_offset', name: 'Зачет Аванса', group: 'finance' },
   { code: 'guarantee_retention', name: 'Гарантийное Удержание', group: 'finance' },
   { code: 'guarantee_return', name: 'Возврат ГУ', group: 'finance' },
-  { code: 'total_income', name: 'Итого поступление за СМР по проекту', group: 'finance' },
+  { code: 'total_income', name: 'Итого поступление за СМР по проекту', group: 'finance', isBold: true },
 ];
 
 export const SMR_CODES = WORK_TYPES
@@ -29,7 +29,7 @@ export const SMR_CODES = WORK_TYPES
   .map((w) => w.code);
 
 export const DATA_WORK_TYPES = WORK_TYPES.filter(
-  (w) => !w.isHeader && !w.isCalculated
+  (w) => !w.isHeader
 );
 
 function normalizeStr(s: string): string {

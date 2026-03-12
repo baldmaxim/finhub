@@ -18,7 +18,8 @@ export interface WorkType {
   name: string;
   isHeader?: boolean;
   isCalculated?: boolean;
-  group?: 'smr' | 'finance';
+  group?: 'smr' | 'finance' | 'total';
+  isBold?: boolean;
 }
 
 export interface IncomeTableRow {

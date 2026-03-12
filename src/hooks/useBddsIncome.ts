@@ -3,7 +3,7 @@ import type { IncomeTableRow } from '../types/bddsIncome';
 import type { Project } from '../types/projects';
 import * as bddsIncomeService from '../services/bddsIncomeService';
 import * as projectsService from '../services/projectsService';
-import { WORK_TYPES, SMR_CODES } from '../utils/workTypes';
+import { WORK_TYPES } from '../utils/workTypes';
 
 interface IUseBddsIncomeResult {
   rows: IncomeTableRow[];
@@ -88,35 +88,15 @@ export function useBddsIncome(yearFrom: number, yearTo: number): IUseBddsIncomeR
         workTypeCode: wt.code,
         name: wt.name,
         note: '',
-        isCalculated: wt.isCalculated,
+        isCalculated: wt.isBold,
       };
 
-      // Примечание
-      if (!wt.isCalculated) {
-        const noteEntry = notes.find((n) => n.work_type_code === wt.code);
-        row.note = noteEntry?.note ?? '';
-      }
+      const noteEntry = notes.find((n) => n.work_type_code === wt.code);
+      row.note = noteEntry?.note ?? '';
 
-      if (wt.isCalculated) {
-        // Рассчитать
-        for (const mk of monthKeys) {
-          let sum = 0;
-          if (wt.code === 'total_smr') {
-            sum = calcGroupSum(SMR_CODES, mk);
-          } else if (wt.code === 'total_smr_no_vat') {
-            const totalSmr = calcGroupSum(SMR_CODES, mk);
-            const year = parseInt(mk.split('-')[0], 10);
-            const vatRate = year >= 2026 ? 22 : 20;
-            sum = totalSmr * 100 / (100 + vatRate);
-          }
-          row[mk] = sum;
-        }
-      } else {
-        // Данные из entries
-        const wtEntries = filteredEntries.filter((e) => e.work_type_code === wt.code);
-        for (const e of wtEntries) {
-          row[e.month_key] = Number(e.amount);
-        }
+      const wtEntries = filteredEntries.filter((e) => e.work_type_code === wt.code);
+      for (const e of wtEntries) {
+        row[e.month_key] = Number(e.amount);
       }
 
       result.push(row);
@@ -124,12 +104,6 @@ export function useBddsIncome(yearFrom: number, yearTo: number): IUseBddsIncomeR
 
     return result;
   }, [filteredEntries, notes, monthKeys]);
-
-  function calcGroupSum(codes: string[], monthKey: string): number {
-    return filteredEntries
-      .filter((e) => codes.includes(e.work_type_code) && e.month_key === monthKey)
-      .reduce((sum, e) => sum + Number(e.amount), 0);
-  }
 
 
 
