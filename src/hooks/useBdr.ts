@@ -144,7 +144,7 @@ export function useBdr(yearFrom: number, yearTo: number, projectId: string | nul
   }, [loadData]);
 
   const buildRowsForYear = useCallback(
-    (yd: YearData): BdrTableRow[] => {
+    (yd: YearData, yearCumBefore: { plan: number; fact: number }): BdrTableRow[] => {
       const { planMap, factMap, subTotals: ySub, smrTotals: ySmr, actualTotals: yAct } = yd;
 
       const getVal = (code: string, month: number, type: 'plan' | 'fact'): number => {
@@ -165,7 +165,7 @@ export function useBdr(yearFrom: number, yearTo: number, projectId: string | nul
             return calcMonthVal('execution_total', month, type) - calcMonthVal('revenue_smr', month, type);
           case 'readiness_percent': {
             if (!smrAllYearsTotal) return 0;
-            let cumulative = type === 'plan' ? revenueCumBefore.plan : revenueCumBefore.fact;
+            let cumulative = type === 'plan' ? yearCumBefore.plan : yearCumBefore.fact;
             for (let m = 1; m <= month; m++) {
               cumulative += calcMonthVal('revenue_smr', m, type);
             }
@@ -317,16 +317,27 @@ export function useBdr(yearFrom: number, yearTo: number, projectId: string | nul
 
       return result;
     },
-    [smrAllYearsTotal, revenueCumBefore, overheadExpanded, costExpanded]
+    [smrAllYearsTotal, overheadExpanded, costExpanded]
   );
 
   const yearRows = useMemo((): Map<number, BdrTableRow[]> => {
     const map = new Map<number, BdrTableRow[]>();
-    for (const [yr, yd] of yearDataMap) {
-      map.set(yr, buildRowsForYear(yd));
+    const years = Array.from(yearDataMap.keys()).sort((a, b) => a - b);
+    let cumPlan = revenueCumBefore.plan;
+    let cumFact = revenueCumBefore.fact;
+
+    for (const yr of years) {
+      const yd = yearDataMap.get(yr)!;
+      map.set(yr, buildRowsForYear(yd, { plan: cumPlan, fact: cumFact }));
+
+      // Накапливаем выручку текущего года для следующего
+      for (let m = 1; m <= 12; m++) {
+        cumPlan += yd.smrTotals[m] || 0;
+        cumFact += yd.actualTotals.ks[m] || yd.factMap.get('revenue_smr')?.[m] || 0;
+      }
     }
     return map;
-  }, [yearDataMap, buildRowsForYear]);
+  }, [yearDataMap, buildRowsForYear, revenueCumBefore]);
 
   // Обратная совместимость: rows = yearRows первого года
   const rows = useMemo((): BdrTableRow[] => {
