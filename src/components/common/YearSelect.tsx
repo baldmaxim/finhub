@@ -6,7 +6,8 @@ interface IProps {
 }
 
 const currentYear = new Date().getFullYear();
-const years = Array.from({ length: 7 }, (_, i) => currentYear - 2 + i);
+const startYear = 2022;
+const years = Array.from({ length: currentYear + 5 - startYear }, (_, i) => startYear + i);
 
 export const YearSelect = ({ value, onChange }: IProps) => {
   return (
