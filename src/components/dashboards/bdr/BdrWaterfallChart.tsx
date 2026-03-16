@@ -1,12 +1,19 @@
 import type { FC } from 'react';
 import { useMemo } from 'react';
-import { Card } from 'antd';
+import { Card, Tooltip } from 'antd';
+import { InfoCircleOutlined } from '@ant-design/icons';
 import { Column } from '@ant-design/charts';
 import type { IBdrDashboardData } from '../../../types/dashboard';
 
 interface IProps {
   data: IBdrDashboardData;
 }
+
+const HELP_TEXT = `График состоит из столбиков, которые «шагают» вниз (расходы) или вверх (доходы).
+
+• Первый высокий столбец: Ваша полная Выручка (100%).
+• Промежуточные ступени вниз: Затраты, сгруппированные по категориям (Себестоимость, Налоги, ОФЗ).
+• Итоговый столбец (фундамент): Чистая прибыль, которая осталась «в сухом остатке».`;
 
 export const BdrWaterfallChart: FC<IProps> = ({ data }) => {
   const chartData = useMemo(() => {
@@ -64,8 +71,17 @@ export const BdrWaterfallChart: FC<IProps> = ({ data }) => {
     legend: false as const,
   };
 
+  const title = (
+    <span>
+      Водопад: от выручки к чистой прибыли{' '}
+      <Tooltip title={<span style={{ whiteSpace: 'pre-line' }}>{HELP_TEXT}</span>} overlayStyle={{ maxWidth: 480 }}>
+        <InfoCircleOutlined className="bdr-bubble-help-icon" />
+      </Tooltip>
+    </span>
+  );
+
   return (
-    <Card title="Водопад: от выручки к чистой прибыли" size="small" className="dashboard-chart-card">
+    <Card title={title} size="small" className="dashboard-chart-card">
       <Column {...config} height={300} />
     </Card>
   );
