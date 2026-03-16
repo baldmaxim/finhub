@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { Card, Tabs, Alert } from 'antd';
 import { useDashboard } from '../../hooks/useDashboard';
 import { useBdrBubbleData } from '../../hooks/useBdrBubbleData';
+import { useBdrExecutionVsKs } from '../../hooks/useBdrExecutionVsKs';
 import { DashboardToolbar } from './DashboardToolbar';
 import { BdrDashboard } from './bdr/BdrDashboard';
 import { BdrDashboard2 } from './bdr2/BdrDashboard2';
@@ -26,9 +27,10 @@ export const DashboardPage = () => {
 
   const { bdrData, bddsData, loading, error } = useDashboard(yearFrom, yearTo, selectedProjectId);
   const { data: bubbleData, loading: bubbleLoading, error: bubbleError } = useBdrBubbleData(yearFrom, yearTo);
+  const { data: execVsKsData, loading: execVsKsLoading, error: execVsKsError } = useBdrExecutionVsKs(yearFrom, yearTo);
 
-  if (error || bubbleError) {
-    return <Alert type="error" message="Ошибка" description={error || bubbleError} showIcon />;
+  if (error || bubbleError || execVsKsError) {
+    return <Alert type="error" message="Ошибка" description={error || bubbleError || execVsKsError} showIcon />;
   }
 
   const items = [
@@ -40,7 +42,7 @@ export const DashboardPage = () => {
     {
       key: 'bdr2',
       label: 'БДР #2',
-      children: <BdrDashboard2 data={bubbleData} loading={bubbleLoading} />,
+      children: <BdrDashboard2 bubbleData={bubbleData} executionVsKsData={execVsKsData} loading={bubbleLoading || execVsKsLoading} />,
     },
     {
       key: 'bdds',

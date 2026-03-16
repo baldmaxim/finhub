@@ -39,6 +39,12 @@ export interface IBubbleDataPoint {
   nzp: number;
 }
 
+export interface IExecutionVsKsPoint {
+  month: string;
+  value: number;
+  type: 'Выполнение' | 'Актирование (КС-2)';
+}
+
 export interface IBddsDashboardData {
   planFactIncome: IMonthDataPoint[];
   ncfBySection: IMonthDataPoint[];
