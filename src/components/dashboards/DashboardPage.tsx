@@ -27,7 +27,7 @@ export const DashboardPage = () => {
 
   const { bdrData, bddsData, loading, error } = useDashboard(yearFrom, yearTo, selectedProjectId);
   const { data: bubbleData, loading: bubbleLoading, error: bubbleError } = useBdrBubbleData(yearFrom, yearTo);
-  const { data: execVsKsData, loading: execVsKsLoading, error: execVsKsError } = useBdrExecutionVsKs(yearFrom, yearTo);
+  const { data: execVsKsData, loading: execVsKsLoading, error: execVsKsError } = useBdrExecutionVsKs(yearFrom, yearTo, selectedProjectId);
 
   if (error || bubbleError || execVsKsError) {
     return <Alert type="error" message="Ошибка" description={error || bubbleError || execVsKsError} showIcon />;

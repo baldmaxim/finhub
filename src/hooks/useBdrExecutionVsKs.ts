@@ -8,7 +8,7 @@ interface IUseBdrExecutionVsKsResult {
   error: string | null;
 }
 
-export function useBdrExecutionVsKs(yearFrom: number, yearTo: number): IUseBdrExecutionVsKsResult {
+export function useBdrExecutionVsKs(yearFrom: number, yearTo: number, projectId: string | null): IUseBdrExecutionVsKsResult {
   const [data, setData] = useState<IExecutionVsKsPoint[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,10 +24,14 @@ export function useBdrExecutionVsKs(yearFrom: number, yearTo: number): IUseBdrEx
         }
       }
 
-      const { data: execData, error: execErr } = await supabase
+      let query = supabase
         .from('actual_execution_entries')
         .select('month_key, ks_amount, fact_amount')
         .in('month_key', monthKeys);
+      if (projectId) {
+        query = query.eq('project_id', projectId);
+      }
+      const { data: execData, error: execErr } = await query;
       if (execErr) throw execErr;
 
       // Агрегация по месяцам
@@ -71,7 +75,7 @@ export function useBdrExecutionVsKs(yearFrom: number, yearTo: number): IUseBdrEx
     } finally {
       setLoading(false);
     }
-  }, [yearFrom, yearTo]);
+  }, [yearFrom, yearTo, projectId]);
 
   useEffect(() => { loadData(); }, [loadData]);
 
