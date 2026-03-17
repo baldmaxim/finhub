@@ -158,9 +158,19 @@ export function useBddsIncome(yearFrom: number, yearTo: number): IUseBddsIncomeR
         }
       }
 
+      // Дедупликация по (work_type_code, month_key) — первое вхождение побеждает
+      const entryMap = new Map<string, typeof entriesToUpsert[0]>();
+      for (const entry of entriesToUpsert) {
+        const key = `${entry.work_type_code}|${entry.month_key}`;
+        if (!entryMap.has(key)) {
+          entryMap.set(key, entry);
+        }
+      }
+      const uniqueEntries = Array.from(entryMap.values());
+
       // Собрать уникальные месяцы из импорта
       const monthKeysSet = new Set<string>();
-      for (const entry of entriesToUpsert) {
+      for (const entry of uniqueEntries) {
         monthKeysSet.add(entry.month_key);
       }
 
@@ -168,7 +178,7 @@ export function useBddsIncome(yearFrom: number, yearTo: number): IUseBddsIncomeR
       await bddsIncomeService.deleteEntriesByMonths(projectId, Array.from(monthKeysSet));
 
       await Promise.all([
-        bddsIncomeService.upsertEntries(entriesToUpsert),
+        bddsIncomeService.upsertEntries(uniqueEntries),
         bddsIncomeService.upsertNotes(notesToUpsert),
       ]);
 
