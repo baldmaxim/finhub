@@ -9,6 +9,10 @@ export const BDR_ROWS: BdrRowDef[] = [
   { code: 'readiness_percent', name: 'Процент готовности с начала строительства', isPercent: true, isCalculated: true },
   { code: 'nzp_to_revenue', name: 'Отношение НЗП к Выручке', isPercent: true, isCalculated: true, noPlan: true },
 
+  { code: 'receipt_current', name: 'Поступление средств от текущей деятельности', isSemiBold: true, isCalculated: true, isReceiptParent: true },
+  { code: 'receipt_sales', name: 'Поступление от продажи продукции и товаров, выполнения работ, оказания услуг', isReceiptChild: true },
+  { code: 'receipt_distrib', name: 'Оплата по распред письмам', isReceiptChild: true },
+
   { code: 'cost_total', name: 'Себестоимость в т.ч.', isSemiBold: true, isCalculated: true, isCostParent: true },
   { code: 'cost_materials', name: 'Материальные расходы', isClickable: true, subType: 'materials', isCostChild: true },
   { code: 'cost_labor', name: 'ФОТ основных рабочих', isClickable: true, subType: 'labor', isCostChild: true },
@@ -95,6 +99,11 @@ export const BDR_SUB_TO_BDDS_NAME: Partial<Record<BdrSubType, string>> = {
 
 // Sub-типы, для которых БДДС план заполняется из bdr_sub_entries (Сумма, сдвиг +1 месяц)
 export const BDDS_PLAN_SUB_TYPES = Object.keys(BDR_SUB_TO_BDDS_NAME) as BdrSubType[];
+
+export const RECEIPT_ROW_CODES = [
+  'receipt_sales',
+  'receipt_distrib',
+] as const;
 
 export const COST_ROW_CODES = [
   'cost_materials',

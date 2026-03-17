@@ -4,7 +4,7 @@ import * as bdrService from '../services/bdrService';
 import * as bdrSubService from '../services/bdrSubService';
 import * as actualExecutionService from '../services/actualExecutionService';
 import type { ActualExecutionTotals } from '../types/actualExecution';
-import { BDR_ROWS, BDR_OVERHEAD_ROWS, OVERHEAD_CODES, COST_ROW_CODES } from '../utils/bdrConstants';
+import { BDR_ROWS, BDR_OVERHEAD_ROWS, OVERHEAD_CODES, COST_ROW_CODES, RECEIPT_ROW_CODES } from '../utils/bdrConstants';
 import { MONTHS, buildYearMonthSlots } from '../utils/constants';
 import type { YearMonthSlot } from '../utils/constants';
 
@@ -25,8 +25,10 @@ interface IUseBdrResult {
   error: string | null;
   overheadExpanded: boolean;
   costExpanded: boolean;
+  receiptExpanded: boolean;
   toggleOverhead: () => void;
   toggleCost: () => void;
+  toggleReceipt: () => void;
   updateEntry: (rowCode: string, month: number, amount: number, type: 'plan' | 'fact') => void;
   saveAll: () => Promise<void>;
   openSubType: BdrSubType | null;
@@ -45,6 +47,7 @@ export function useBdr(yearFrom: number, yearTo: number, projectId: string | nul
   const [error, setError] = useState<string | null>(null);
   const [overheadExpanded, setOverheadExpanded] = useState(false);
   const [costExpanded, setCostExpanded] = useState(false);
+  const [receiptExpanded, setReceiptExpanded] = useState(false);
   const [openSubType, setOpenSubType] = useState<BdrSubType | null>(null);
 
   const dirtyRef = useRef<Set<string>>(new Set());
@@ -57,6 +60,10 @@ export function useBdr(yearFrom: number, yearTo: number, projectId: string | nul
 
   const toggleCost = useCallback(() => {
     setCostExpanded((prev) => !prev);
+  }, []);
+
+  const toggleReceipt = useCallback(() => {
+    setReceiptExpanded((prev) => !prev);
   }, []);
 
   const loadData = useCallback(async () => {
@@ -177,6 +184,8 @@ export function useBdr(yearFrom: number, yearTo: number, projectId: string | nul
             const nzp = calcMonthVal('contract_not_accepted', month, type);
             return (nzp / rev) * 100;
           }
+          case 'receipt_current':
+            return RECEIPT_ROW_CODES.reduce((sum, c) => sum + getVal(c, month, type), 0);
           case 'cost_materials':
           case 'cost_labor':
           case 'cost_subcontract':
@@ -242,7 +251,7 @@ export function useBdr(yearFrom: number, yearTo: number, projectId: string | nul
         }
       };
 
-      const buildRow = (def: typeof BDR_ROWS[number], opts?: { isOverheadItem?: boolean; isCostChild?: boolean }): BdrTableRow => {
+      const buildRow = (def: typeof BDR_ROWS[number], opts?: { isOverheadItem?: boolean; isCostChild?: boolean; isReceiptChild?: boolean }): BdrTableRow => {
         const row: BdrTableRow = {
           key: def.code,
           name: def.name,
@@ -255,6 +264,8 @@ export function useBdr(yearFrom: number, yearTo: number, projectId: string | nul
           isOverheadItem: opts?.isOverheadItem,
           isCostParent: def.isCostParent,
           isCostChild: opts?.isCostChild,
+          isReceiptParent: def.isReceiptParent,
+          isReceiptChild: opts?.isReceiptChild,
           isPlanCalculated: def.isPlanCalculated,
           noPlan: def.noPlan,
           isPercent: def.isPercent,
@@ -302,6 +313,11 @@ export function useBdr(yearFrom: number, yearTo: number, projectId: string | nul
 
       const result: BdrTableRow[] = [];
       for (const def of BDR_ROWS) {
+        if (def.isReceiptChild) {
+          if (!receiptExpanded) continue;
+          result.push(buildRow(def, { isReceiptChild: true }));
+          continue;
+        }
         if (def.isCostChild) {
           if (!costExpanded) continue;
           result.push(buildRow(def, { isCostChild: true }));
@@ -317,7 +333,7 @@ export function useBdr(yearFrom: number, yearTo: number, projectId: string | nul
 
       return result;
     },
-    [smrAllYearsTotal, overheadExpanded, costExpanded]
+    [smrAllYearsTotal, overheadExpanded, costExpanded, receiptExpanded]
   );
 
   const yearRows = useMemo((): Map<number, BdrTableRow[]> => {
@@ -421,8 +437,10 @@ export function useBdr(yearFrom: number, yearTo: number, projectId: string | nul
     error,
     overheadExpanded,
     costExpanded,
+    receiptExpanded,
     toggleOverhead,
     toggleCost,
+    toggleReceipt,
     updateEntry,
     saveAll,
     openSubType,

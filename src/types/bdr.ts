@@ -66,6 +66,8 @@ export interface BdrRowDef {
   isPercent?: boolean;
   isCostParent?: boolean;
   isCostChild?: boolean;
+  isReceiptParent?: boolean;
+  isReceiptChild?: boolean;
   isPlanCalculated?: boolean;
   noPlan?: boolean;
 }
@@ -86,6 +88,8 @@ export interface BdrTableRow {
   subType?: BdrSubType;
   isCostParent?: boolean;
   isCostChild?: boolean;
+  isReceiptParent?: boolean;
+  isReceiptChild?: boolean;
   isPlanCalculated?: boolean;
   noPlan?: boolean;
   plan_total?: number;
