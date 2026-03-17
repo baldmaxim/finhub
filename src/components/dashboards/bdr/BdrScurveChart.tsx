@@ -29,8 +29,8 @@ export const BdrScurveChart: FC<IProps> = ({ data }) => {
     colorField: 'type',
     scale: {
       color: {
-        domain: ['План', 'Факт'],
-        range: ['#1890ff', '#52c41a'],
+        domain: ['План', 'Факт', 'Факт (прогноз)'],
+        range: ['#1890ff', '#52c41a', '#52c41a'],
       },
     },
     axis: {
@@ -49,8 +49,14 @@ export const BdrScurveChart: FC<IProps> = ({ data }) => {
     interaction: {
       tooltip: { shared: true },
     },
+    legend: {
+      color: {
+        itemMarker: (type: string) => type === 'Факт (прогноз)' ? false : 'smooth',
+      },
+    },
     style: {
       lineWidth: 2,
+      lineDash: (datum: { type?: string }) => datum.type === 'Факт (прогноз)' ? [6, 4] : [0, 0],
     },
   };
 

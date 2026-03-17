@@ -186,6 +186,9 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
     const scurve: IMonthDataPoint[] = [];
     const costStructure: ICostItem[] = [];
     let cumPlan = 0, cumFact = 0;
+    let prevFactHadData = true;
+    let bridgeLabel = '';
+    let bridgeValue = 0;
 
     for (const d of bdrYears) {
       for (const m of MONTHS) {
@@ -212,7 +215,19 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
         cumPlan += rp;
         cumFact += rf;
         scurve.push({ month: label, value: cumPlan, type: 'План' });
-        scurve.push({ month: label, value: cumFact, type: 'Факт' });
+
+        const hasFactData = rf > 0;
+        // Мостик: при переходе Факт → прогноз дублируем точку
+        if (prevFactHadData && !hasFactData && bridgeLabel) {
+          scurve.push({ month: bridgeLabel, value: bridgeValue, type: 'Факт (прогноз)' });
+        }
+        scurve.push({ month: label, value: cumFact, type: hasFactData ? 'Факт' : 'Факт (прогноз)' });
+
+        if (hasFactData) {
+          bridgeLabel = label;
+          bridgeValue = cumFact;
+        }
+        prevFactHadData = hasFactData;
       }
     }
 
