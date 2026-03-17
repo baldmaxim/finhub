@@ -29,7 +29,7 @@ export const SMR_CODES = WORK_TYPES
   .map((w) => w.code);
 
 export const DATA_WORK_TYPES = WORK_TYPES.filter(
-  (w) => !w.isHeader && !w.isCalculated && !w.isBold
+  (w) => !w.isHeader && !w.isCalculated
 );
 
 function normalizeStr(s: string): string {
