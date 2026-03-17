@@ -63,11 +63,31 @@ export function useBdrExecutionVsKs(yearFrom: number, yearTo: number, projectId:
         const monthIdx = parseInt(monthStr, 10) - 1;
         const label = `${MONTH_NAMES[monthIdx]} ${yearStr.slice(2)}`;
 
-          points.push({ month: label, value: cumFact || null, type: 'Выполнение' });
-        points.push({ month: label, value: cumKs || null, type: 'Актирование (КС-2)' });
+          points.push({ month: label, value: cumFact, type: 'Выполнение' });
+        points.push({ month: label, value: cumKs, type: 'Актирование (КС-2)' });
       }
 
-      setData(points);
+      // Обнулить хвосты (null для месяцев до первого и после последнего ненулевого)
+      const series = new Map<string, IExecutionVsKsPoint[]>();
+      for (const p of points) {
+        if (!series.has(p.type)) series.set(p.type, []);
+        series.get(p.type)!.push(p);
+      }
+      const processed: IExecutionVsKsPoint[] = [];
+      for (const items of series.values()) {
+        const firstIdx = items.findIndex((p) => p.value !== 0);
+        const lastIdx = items.findLastIndex((p) => p.value !== 0);
+        for (let i = 0; i < items.length; i++) {
+          const p = items[i];
+          if (firstIdx === -1 || i < firstIdx || i > lastIdx) {
+            processed.push({ ...p, value: null });
+          } else {
+            processed.push(p);
+          }
+        }
+      }
+
+      setData(processed);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка загрузки данных');
     } finally {

@@ -101,6 +101,29 @@ function calcBdr(code: string, month: number, type: 'plan' | 'fact', d: IYearBdr
   }
 }
 
+/** Ставит null для хвостовых нулей (до первого и после последнего ненулевого значения) в каждой серии */
+function nullifyTails(points: IMonthDataPoint[]): IMonthDataPoint[] {
+  const series = new Map<string, IMonthDataPoint[]>();
+  for (const p of points) {
+    if (!series.has(p.type)) series.set(p.type, []);
+    series.get(p.type)!.push(p);
+  }
+  const result: IMonthDataPoint[] = [];
+  for (const items of series.values()) {
+    const firstIdx = items.findIndex((p) => p.value !== 0);
+    const lastIdx = items.findLastIndex((p) => p.value !== 0);
+    for (let i = 0; i < items.length; i++) {
+      const p = items[i];
+      if (firstIdx === -1 || i < firstIdx || i > lastIdx) {
+        result.push({ ...p, value: null });
+      } else {
+        result.push(p);
+      }
+    }
+  }
+  return result;
+}
+
 function monthLabel(month: number, year: number, multiYear: boolean): string {
   const m = MONTHS.find((x) => x.key === month);
   return multiYear ? `${m?.short} ${String(year).slice(2)}` : (m?.short || '');
@@ -211,8 +234,8 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
 
         cumPlan += rp;
         cumFact += rf;
-        scurve.push({ month: label, value: cumPlan || null, type: 'План' });
-        scurve.push({ month: label, value: cumFact || null, type: 'Факт' });
+        scurve.push({ month: label, value: cumPlan, type: 'План' });
+        scurve.push({ month: label, value: cumFact, type: 'Факт' });
       }
     }
 
@@ -242,7 +265,7 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
         operatingProfit: operatingFact, operatingProfitPct: operatingPctAvg,
         netProfit: netProfitFact, costTotal: costFact,
       },
-      scurve, costStructure, waterfall, marginPercent, revenueByMonth,
+      scurve: nullifyTails(scurve), costStructure, waterfall, marginPercent, revenueByMonth: nullifyTails(revenueByMonth),
     };
   }, [bdrYears, loading, multiYear]);
 
@@ -283,8 +306,8 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
         }
         planIncTotal += planInc;
         factIncTotal += factInc;
-        planFactIncome.push({ month: label, value: planInc || null, type: 'План' });
-        planFactIncome.push({ month: label, value: factInc || null, type: 'Факт' });
+        planFactIncome.push({ month: label, value: planInc, type: 'План' });
+        planFactIncome.push({ month: label, value: factInc, type: 'Факт' });
 
         // ЧДП по секциям
         for (const sc of SECTION_ORDER) {
@@ -299,7 +322,7 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
     }
 
     return {
-      planFactIncome, ncfBySection,
+      planFactIncome: nullifyTails(planFactIncome), ncfBySection,
       kpis: {
         ncfOperating: ncfOp, ncfInvesting: ncfInv, ncfFinancing: ncfFin,
         ncfTotal: ncfOp + ncfInv + ncfFin,
