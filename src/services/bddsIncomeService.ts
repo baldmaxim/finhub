@@ -164,3 +164,19 @@ export async function deleteEntriesByMonths(projectId: string, monthKeys: string
     .in('month_key', monthKeys);
   if (error) throw error;
 }
+
+export async function deleteEntriesByWorkTypesAndMonths(
+  projectId: string,
+  workTypeCodes: string[],
+  monthKeys: string[]
+): Promise<void> {
+  if (workTypeCodes.length === 0 || monthKeys.length === 0) return;
+
+  const { error } = await supabase
+    .from('bdds_income_entries')
+    .delete()
+    .eq('project_id', projectId)
+    .in('work_type_code', workTypeCodes)
+    .in('month_key', monthKeys);
+  if (error) throw error;
+}

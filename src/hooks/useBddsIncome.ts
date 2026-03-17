@@ -158,9 +158,12 @@ export function useBddsIncome(yearFrom: number, yearTo: number): IUseBddsIncomeR
         }
       }
 
+      // Убрать нулевые записи — не затирать существующие данные
+      const nonZeroEntries = entriesToUpsert.filter((e) => e.amount !== 0);
+
       // Дедупликация по (work_type_code, month_key) — первое вхождение побеждает
-      const entryMap = new Map<string, typeof entriesToUpsert[0]>();
-      for (const entry of entriesToUpsert) {
+      const entryMap = new Map<string, typeof nonZeroEntries[0]>();
+      for (const entry of nonZeroEntries) {
         const key = `${entry.work_type_code}|${entry.month_key}`;
         if (!entryMap.has(key)) {
           entryMap.set(key, entry);
@@ -168,14 +171,20 @@ export function useBddsIncome(yearFrom: number, yearTo: number): IUseBddsIncomeR
       }
       const uniqueEntries = Array.from(entryMap.values());
 
-      // Собрать уникальные месяцы из импорта
+      // Собрать уникальные месяцы и виды работ только из ненулевых записей
       const monthKeysSet = new Set<string>();
+      const workTypeCodesSet = new Set<string>();
       for (const entry of uniqueEntries) {
         monthKeysSet.add(entry.month_key);
+        workTypeCodesSet.add(entry.work_type_code);
       }
 
-      // Удалить старые данные только за импортируемые периоды
-      await bddsIncomeService.deleteEntriesByMonths(projectId, Array.from(monthKeysSet));
+      // Удалить старые данные только за импортируемые виды работ и периоды
+      await bddsIncomeService.deleteEntriesByWorkTypesAndMonths(
+        projectId,
+        Array.from(workTypeCodesSet),
+        Array.from(monthKeysSet)
+      );
 
       await Promise.all([
         bddsIncomeService.upsertEntries(uniqueEntries),
