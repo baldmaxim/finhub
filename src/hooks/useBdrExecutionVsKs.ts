@@ -67,30 +67,7 @@ export function useBdrExecutionVsKs(yearFrom: number, yearTo: number, projectId:
         points.push({ month: label, value: cumKs, type: 'Актирование (КС-2)' });
       }
 
-      // Обнулить хвосты (null для месяцев до первого и после последнего ненулевого)
-      const series = new Map<string, IExecutionVsKsPoint[]>();
-      for (const p of points) {
-        if (!series.has(p.type)) series.set(p.type, []);
-        series.get(p.type)!.push(p);
-      }
-      const processed: IExecutionVsKsPoint[] = [];
-      for (const items of series.values()) {
-        const firstIdx = items.findIndex((p) => p.value !== 0);
-        let lastIdx = -1;
-        for (let j = items.length - 1; j >= 0; j--) {
-          if (items[j].value !== 0) { lastIdx = j; break; }
-        }
-        for (let i = 0; i < items.length; i++) {
-          const p = items[i];
-          if (firstIdx === -1 || i < firstIdx || i > lastIdx) {
-            processed.push({ ...p, value: null });
-          } else {
-            processed.push(p);
-          }
-        }
-      }
-
-      setData(processed);
+      setData(points);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка загрузки данных');
     } finally {

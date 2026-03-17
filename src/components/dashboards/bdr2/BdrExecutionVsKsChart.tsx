@@ -58,9 +58,6 @@ export const BdrExecutionVsKsChart: FC<IProps> = ({ data }) => {
     style: {
       fillOpacity: 0.15,
       lineWidth: 2,
-      connect: true,
-      connectLineDash: [4, 4],
-      connectStroke: '#ccc',
     },
     legend: { position: 'bottom' as const },
   };

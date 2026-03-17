@@ -101,32 +101,6 @@ function calcBdr(code: string, month: number, type: 'plan' | 'fact', d: IYearBdr
   }
 }
 
-/** Ставит null для хвостовых нулей (до первого и после последнего ненулевого значения) в каждой серии */
-function nullifyTails(points: IMonthDataPoint[]): IMonthDataPoint[] {
-  const series = new Map<string, IMonthDataPoint[]>();
-  for (const p of points) {
-    if (!series.has(p.type)) series.set(p.type, []);
-    series.get(p.type)!.push(p);
-  }
-  const result: IMonthDataPoint[] = [];
-  for (const items of series.values()) {
-    const firstIdx = items.findIndex((p) => p.value !== 0);
-    let lastIdx = -1;
-    for (let i = items.length - 1; i >= 0; i--) {
-      if (items[i].value !== 0) { lastIdx = i; break; }
-    }
-    for (let i = 0; i < items.length; i++) {
-      const p = items[i];
-      if (firstIdx === -1 || i < firstIdx || i > lastIdx) {
-        result.push({ ...p, value: null });
-      } else {
-        result.push(p);
-      }
-    }
-  }
-  return result;
-}
-
 function monthLabel(month: number, year: number, multiYear: boolean): string {
   const m = MONTHS.find((x) => x.key === month);
   return multiYear ? `${m?.short} ${String(year).slice(2)}` : (m?.short || '');
@@ -268,7 +242,7 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
         operatingProfit: operatingFact, operatingProfitPct: operatingPctAvg,
         netProfit: netProfitFact, costTotal: costFact,
       },
-      scurve: nullifyTails(scurve), costStructure, waterfall, marginPercent, revenueByMonth: nullifyTails(revenueByMonth),
+      scurve, costStructure, waterfall, marginPercent, revenueByMonth,
     };
   }, [bdrYears, loading, multiYear]);
 
@@ -325,7 +299,7 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
     }
 
     return {
-      planFactIncome: nullifyTails(planFactIncome), ncfBySection,
+      planFactIncome, ncfBySection,
       kpis: {
         ncfOperating: ncfOp, ncfInvesting: ncfInv, ncfFinancing: ncfFin,
         ncfTotal: ncfOp + ncfInv + ncfFin,
