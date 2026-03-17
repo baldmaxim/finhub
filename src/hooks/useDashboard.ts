@@ -211,8 +211,8 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
 
         cumPlan += rp;
         cumFact += rf;
-        scurve.push({ month: label, value: cumPlan, type: 'План' });
-        scurve.push({ month: label, value: cumFact, type: 'Факт' });
+        scurve.push({ month: label, value: cumPlan || null, type: 'План' });
+        scurve.push({ month: label, value: cumFact || null, type: 'Факт' });
       }
     }
 
@@ -283,8 +283,8 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
         }
         planIncTotal += planInc;
         factIncTotal += factInc;
-        planFactIncome.push({ month: label, value: planInc, type: 'План' });
-        planFactIncome.push({ month: label, value: factInc, type: 'Факт' });
+        planFactIncome.push({ month: label, value: planInc || null, type: 'План' });
+        planFactIncome.push({ month: label, value: factInc || null, type: 'Факт' });
 
         // ЧДП по секциям
         for (const sc of SECTION_ORDER) {

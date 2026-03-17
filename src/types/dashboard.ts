@@ -1,6 +1,6 @@
 export interface IMonthDataPoint {
   month: string;
-  value: number;
+  value: number | null;
   type: string;
 }
 
@@ -41,7 +41,7 @@ export interface IBubbleDataPoint {
 
 export interface IExecutionVsKsPoint {
   month: string;
-  value: number;
+  value: number | null;
   type: 'Выполнение' | 'Актирование (КС-2)';
 }
 

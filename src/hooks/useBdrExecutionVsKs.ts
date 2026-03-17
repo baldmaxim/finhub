@@ -63,10 +63,8 @@ export function useBdrExecutionVsKs(yearFrom: number, yearTo: number, projectId:
         const monthIdx = parseInt(monthStr, 10) - 1;
         const label = `${MONTH_NAMES[monthIdx]} ${yearStr.slice(2)}`;
 
-        if (cumFact > 0 || cumKs > 0) {
-          points.push({ month: label, value: cumFact, type: 'Выполнение' });
-          points.push({ month: label, value: cumKs, type: 'Актирование (КС-2)' });
-        }
+          points.push({ month: label, value: cumFact || null, type: 'Выполнение' });
+        points.push({ month: label, value: cumKs || null, type: 'Актирование (КС-2)' });
       }
 
       setData(points);

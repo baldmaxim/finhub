@@ -51,6 +51,9 @@ export const BdrScurveChart: FC<IProps> = ({ data }) => {
     },
     style: {
       lineWidth: 2,
+      connect: true,
+      connectLineDash: [4, 4],
+      connectStroke: '#ccc',
     },
   };
 
