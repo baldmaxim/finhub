@@ -43,8 +43,10 @@ export const BddsIncomePage = () => {
     try {
       await importData(selectedProjectId, data);
       message.success('Данные импортированы');
-    } catch {
-      message.error('Ошибка импорта данных');
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      console.error('Ошибка импорта:', err);
+      message.error(`Ошибка импорта: ${msg}`, 10);
     }
   };
 
