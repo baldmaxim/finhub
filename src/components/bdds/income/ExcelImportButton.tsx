@@ -59,6 +59,16 @@ function parseMonthHeader(header: unknown): string | null {
     if (monthNum) return `${textMatch[2]}-${monthNum}`;
   }
 
+  // "авг.22", "сен.22", "янв 23", "мар.25" — сокращённый месяц + 2-значный год
+  const shortYearMatch = trimmed.toLowerCase().match(/^([a-zа-яё]+)\.?\s*(\d{2})$/);
+  if (shortYearMatch) {
+    const monthNum = MONTH_NAMES[shortYearMatch[1]];
+    if (monthNum) {
+      const year = 2000 + parseInt(shortYearMatch[2], 10);
+      return `${year}-${monthNum}`;
+    }
+  }
+
   return null;
 }
 
