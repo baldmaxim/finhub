@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
-import type { IncomeTableRow } from '../types/bddsIncome';
+import type { IncomeTableRow, SummaryTableRow } from '../types/bddsIncome';
 import type { Project } from '../types/projects';
 import * as bddsIncomeService from '../services/bddsIncomeService';
 import * as projectsService from '../services/projectsService';
@@ -7,6 +7,8 @@ import { WORK_TYPES, SMR_CODES } from '../utils/workTypes';
 
 interface IUseBddsIncomeResult {
   rows: IncomeTableRow[];
+  summaryRows: SummaryTableRow[];
+  allMonthKeys: string[];
   monthKeys: string[];
   projects: Project[];
   selectedProjectId: string | null;
@@ -23,7 +25,7 @@ interface IUseBddsIncomeResult {
 export function useBddsIncome(yearFrom: number, yearTo: number): IUseBddsIncomeResult {
   const [projects, setProjects] = useState<Project[]>([]);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
-  const [entries, setEntries] = useState<Array<{ project_id: string; work_type_code: string; month_key: string; amount: number }>>([]);
+  const [allEntries, setAllEntries] = useState<Array<{ project_id: string; work_type_code: string; month_key: string; amount: number }>>([]);
   const [notes, setNotes] = useState<Array<{ project_id: string; work_type_code: string; note: string }>>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,14 +35,15 @@ export function useBddsIncome(yearFrom: number, yearTo: number): IUseBddsIncomeR
       setLoading(true);
       setError(null);
 
-      const [projectsData, entriesData, notesData] = await Promise.all([
+      const [projectsData, allEntriesData, notesData] = await Promise.all([
         projectsService.getProjects(),
-        bddsIncomeService.getEntries(selectedProjectId ?? undefined),
+        bddsIncomeService.getEntries(),
         bddsIncomeService.getNotes(selectedProjectId ?? undefined),
       ]);
 
-      setProjects(projectsData.filter((p) => p.is_active));
-      setEntries(entriesData);
+      const activeProjects = projectsData.filter((p) => p.is_active);
+      setProjects(activeProjects);
+      setAllEntries(allEntriesData);
       setNotes(notesData);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Ошибка загрузки данных');
@@ -53,12 +56,25 @@ export function useBddsIncome(yearFrom: number, yearTo: number): IUseBddsIncomeR
     loadData();
   }, [loadData]);
 
-  const filteredEntries = useMemo(() => {
-    return entries.filter((e) => {
+  const allFilteredEntries = useMemo(() => {
+    return allEntries.filter((e) => {
       const year = parseInt(e.month_key.split('-')[0], 10);
       return year >= yearFrom && year <= yearTo;
     });
-  }, [entries, yearFrom, yearTo]);
+  }, [allEntries, yearFrom, yearTo]);
+
+  const filteredEntries = useMemo(() => {
+    if (!selectedProjectId) return allFilteredEntries;
+    return allFilteredEntries.filter((e) => e.project_id === selectedProjectId);
+  }, [allFilteredEntries, selectedProjectId]);
+
+  const allMonthKeys = useMemo(() => {
+    const keys = new Set<string>();
+    for (const e of allFilteredEntries) {
+      keys.add(e.month_key);
+    }
+    return Array.from(keys).sort();
+  }, [allFilteredEntries]);
 
   const monthKeys = useMemo(() => {
     const keys = new Set<string>();
@@ -119,7 +135,48 @@ export function useBddsIncome(yearFrom: number, yearTo: number): IUseBddsIncomeR
     return result;
   }, [filteredEntries, notes, monthKeys]);
 
+  const summaryRows = useMemo((): SummaryTableRow[] => {
+    const result: SummaryTableRow[] = [];
 
+    for (const project of projects) {
+      const projectEntries = allFilteredEntries.filter((e) => e.project_id === project.id);
+
+      // Всего СМР по проекту
+      const smrRow: SummaryTableRow = {
+        key: `${project.id}_total_smr`,
+        projectName: project.name,
+        projectId: project.id,
+        rowLabel: 'Всего СМР по проекту',
+        rowType: 'total_smr',
+      };
+      for (const e of projectEntries.filter((e) => e.work_type_code === 'total_smr')) {
+        smrRow[e.month_key] = Number(e.amount);
+      }
+
+      // Итого поступление за СМР по проекту
+      const incomeRow: SummaryTableRow = {
+        key: `${project.id}_total_income`,
+        projectName: project.name,
+        projectId: project.id,
+        rowLabel: 'Итого поступление за СМР по проекту',
+        rowType: 'total_income',
+      };
+      for (const e of projectEntries.filter((e) => e.work_type_code === 'total_income')) {
+        incomeRow[e.month_key] = Number(e.amount);
+      }
+
+      // Добавляем только если есть данные хотя бы в одной строке
+      const hasData = allMonthKeys.some(
+        (mk) => (typeof smrRow[mk] === 'number' && smrRow[mk] !== 0) ||
+                 (typeof incomeRow[mk] === 'number' && incomeRow[mk] !== 0)
+      );
+      if (hasData) {
+        result.push(smrRow, incomeRow);
+      }
+    }
+
+    return result;
+  }, [projects, allFilteredEntries, allMonthKeys]);
 
   const importData = useCallback(
     async (
@@ -198,6 +255,8 @@ export function useBddsIncome(yearFrom: number, yearTo: number): IUseBddsIncomeR
 
   return {
     rows,
+    summaryRows,
+    allMonthKeys,
     monthKeys,
     projects,
     selectedProjectId,

@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useBddsIncome } from '../../../hooks/useBddsIncome';
 import { BddsIncomeToolbar } from './BddsIncomeToolbar';
 import { BddsIncomeTable } from './BddsIncomeTable';
+import { BddsIncomeSummaryTable } from './BddsIncomeSummaryTable';
 import type { ExcelImportData } from '../../../types/bddsIncome';
 
 const currentYear = new Date().getFullYear();
@@ -16,6 +17,8 @@ export const BddsIncomePage = () => {
 
   const {
     rows,
+    summaryRows,
+    allMonthKeys,
     monthKeys,
     projects,
     selectedProjectId,
@@ -87,7 +90,15 @@ export const BddsIncomePage = () => {
           <Spin size="large" />
         </div>
       ) : (
-        <BddsIncomeTable rows={rows} monthKeys={monthKeys} />
+        <>
+          <BddsIncomeTable rows={rows} monthKeys={monthKeys} />
+          {summaryRows.length > 0 && (
+            <div style={{ marginTop: 32 }}>
+              <h3>Сводные данные</h3>
+              <BddsIncomeSummaryTable rows={summaryRows} monthKeys={allMonthKeys} />
+            </div>
+          )}
+        </>
       )}
     </Card>
   );

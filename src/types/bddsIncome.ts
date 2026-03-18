@@ -37,3 +37,12 @@ export interface ExcelImportData {
   note: string;
   months: Record<string, number>;
 }
+
+export interface SummaryTableRow {
+  key: string;
+  projectName: string;
+  projectId: string;
+  rowLabel: string;
+  rowType: 'total_smr' | 'total_income';
+  [monthKey: string]: unknown;
+}
