@@ -74,6 +74,11 @@ body {
   border-right: 2px solid #d9d9d9 !important;
 }
 
+/* Сводная таблица — запрет переноса чисел */
+.bdds-summary-table td {
+  white-space: nowrap;
+}
+
 /* Неактивные пользователи */
 .user-row-disabled td {
   color: #bfbfbf !important;

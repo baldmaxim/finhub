@@ -52,7 +52,6 @@ const buildColumns = (monthKeys: string[]): ColumnsType<SummaryTableRow> => {
       title: formatMonthLabel(mk),
       dataIndex: mk,
       key: mk,
-      width: 110,
       align: 'right',
       render: renderAmount,
     });
@@ -61,7 +60,6 @@ const buildColumns = (monthKeys: string[]): ColumnsType<SummaryTableRow> => {
   cols.push({
     title: 'Итого',
     key: 'row_total',
-    width: 130,
     align: 'right',
     className: 'bdds-total-cell',
     render: (_: unknown, record: SummaryTableRow) => {
@@ -167,8 +165,9 @@ export const BddsIncomeSummaryTable = ({ rows, monthKeys }: IProps) => {
         pagination={false}
         bordered
         size="small"
-        scroll={{ x: 380 + monthKeys.length * 110 }}
+        scroll={{ x: 'max-content' }}
         sticky
+        className="bdds-summary-table"
         rowClassName={(record) => record.key === 'total_row' ? 'bdds-calculated-row' : ''}
       />
 
@@ -179,8 +178,9 @@ export const BddsIncomeSummaryTable = ({ rows, monthKeys }: IProps) => {
         pagination={false}
         bordered
         size="small"
-        scroll={{ x: 380 + monthKeys.length * 110 }}
+        scroll={{ x: 'max-content' }}
         sticky
+        className="bdds-summary-table"
         rowClassName={(record) => record.key === 'total_row' ? 'bdds-calculated-row' : ''}
       />
     </>
