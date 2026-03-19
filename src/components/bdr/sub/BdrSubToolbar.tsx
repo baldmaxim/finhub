@@ -113,7 +113,7 @@ export const BdrSubToolbar = ({
         icon={<PlusOutlined />}
         onClick={() => {
           if (!selectedProjectId) {
-            message.warning('Выберите проект перед добавлением');
+            message.warning('Сначала выберите проект в фильтре сверху');
             return;
           }
           onAdd();
