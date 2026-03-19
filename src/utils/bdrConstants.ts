@@ -68,6 +68,7 @@ export const BDR_SUB_TO_BDDS_NAME: Partial<Record<BdrSubType, string>> = {
   subcontract: 'Субподряд',
   design: 'Проектные работы',
   rental: 'Аренда БК и подъемников',
+  overhead_labor: 'Оплата труда ИТР (в т.ч. Налоги с ФОТ)',
   overhead_02: 'Водопотребление, водоотведение',
   overhead_03: 'Электроснабжение',
   overhead_04: 'Теплоснабжение',
