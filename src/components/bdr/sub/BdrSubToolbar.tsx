@@ -112,7 +112,7 @@ export const BdrSubToolbar = ({
         type="primary"
         icon={<PlusOutlined />}
         onClick={() => {
-          if (isOverheadLabor && !selectedProjectId) {
+          if (!selectedProjectId) {
             message.warning('Выберите проект перед добавлением');
             return;
           }

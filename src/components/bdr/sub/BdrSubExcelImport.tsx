@@ -187,7 +187,7 @@ export const BdrSubExcelImport = ({ subType, projectId, selectedMonth, year, onI
 
   const handleFile = async (file: File) => {
     try {
-      if (isOverheadLabor && !projectId) {
+      if (!projectId) {
         message.warning('Выберите проект перед импортом');
         return;
       }
