@@ -57,7 +57,8 @@ function buildEntryMap(entries: Array<{ row_code?: string; category_id?: string;
     const key = e[keyField] as string;
     if (!key) continue;
     if (!map.has(key)) map.set(key, {});
-    map.get(key)![e.month] = Number(e.amount);
+    const months = map.get(key)!;
+    months[e.month] = (months[e.month] || 0) + Number(e.amount);
   }
   return map;
 }

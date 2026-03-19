@@ -234,14 +234,17 @@ export const BdrSubExcelImport = ({ subType, projectId, selectedMonth, year, onI
             findColumnValue(row, COLUMN_ALIASES.department) ??
             findColumnValue(row, COLUMN_ALIASES.company) ?? ''
           );
-          entries.push({
+          const entry: BdrSubEntryFormData = {
             sub_type: subType,
             project_id: projectId,
             entry_date: getEntryDate(),
             company: department,
             description: '',
             amount,
-          });
+          };
+          entry.amount_nds = parseAmount(findColumnValue(row, COLUMN_ALIASES.amount_nds));
+          entry.amount_without_nds = parseAmount(findColumnValue(row, COLUMN_ALIASES.amount_without_nds));
+          entries.push(entry);
         } else {
           const company = String(findColumnValue(row, COLUMN_ALIASES.company) ?? '');
           const description = String(findColumnValue(row, COLUMN_ALIASES.description) ?? '');
