@@ -111,29 +111,41 @@ export const ExcelImportButton = ({ disabled, onImport }: IProps) => {
           return;
         }
 
-        // Определяем диапазон столбцов из sheet
+        // Ищем строку с месяцами среди первых 10 строк
         const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1');
-        const headerRow = range.s.r;
-
-        const monthColumns: Array<{ index: number; key: string }> = [];
+        let headerRow = -1;
+        let monthColumns: Array<{ index: number; key: string }> = [];
         const skippedHeaders: string[] = [];
 
-        for (let c = 2; c <= range.e.c; c++) {
-          const cellValue = getHeaderCellValue(sheet, headerRow, c);
-          const mk = parseMonthHeader(cellValue);
-          if (mk) {
-            monthColumns.push({ index: c, key: mk });
-          } else if (cellValue !== undefined && cellValue !== null) {
-            const str = String(cellValue).trim();
-            if (str && str.toLowerCase() !== 'итого') {
-              skippedHeaders.push(str);
-            }
+        for (let r = range.s.r; r <= Math.min(range.s.r + 9, range.e.r); r++) {
+          const cols: Array<{ index: number; key: string }> = [];
+          for (let c = 0; c <= range.e.c; c++) {
+            const cellValue = getHeaderCellValue(sheet, r, c);
+            const mk = parseMonthHeader(cellValue);
+            if (mk) cols.push({ index: c, key: mk });
+          }
+          if (cols.length >= 3) {
+            headerRow = r;
+            monthColumns = cols;
+            break;
           }
         }
 
-        if (monthColumns.length === 0) {
+        if (headerRow === -1 || monthColumns.length === 0) {
           message.error('Не удалось определить столбцы с месяцами. Используйте формат: "Янв 2026" или "2026-01"');
           return;
+        }
+
+        // Собрать нераспознанные заголовки из найденной строки
+        for (let c = 0; c <= range.e.c; c++) {
+          const cellValue = getHeaderCellValue(sheet, headerRow, c);
+          if (cellValue !== undefined && cellValue !== null) {
+            const str = String(cellValue).trim();
+            const mk = parseMonthHeader(cellValue);
+            if (!mk && str && str.toLowerCase() !== 'итого') {
+              skippedHeaders.push(str);
+            }
+          }
         }
 
         // Диагностика
@@ -154,7 +166,9 @@ export const ExcelImportButton = ({ disabled, onImport }: IProps) => {
         const result: ExcelImportData[] = [];
         const skippedNames: string[] = [];
 
-        for (let r = 1; r < jsonData.length; r++) {
+        // Строки данных начинаются после строки заголовков
+        const dataStartRow = headerRow - range.s.r + 1;
+        for (let r = dataStartRow; r < jsonData.length; r++) {
           const row = jsonData[r] as unknown[];
           if (!row) continue;
 
