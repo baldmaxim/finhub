@@ -3,6 +3,7 @@ import { Card, Spin, Alert, message } from 'antd';
 import { useBdds } from '../../hooks/useBdds';
 import { BddsToolbar } from './BddsToolbar';
 import { BddsTable } from './BddsTable';
+import type { Project } from '../../types/projects';
 
 const currentYear = new Date().getFullYear();
 
@@ -24,6 +25,20 @@ export const BddsPage = () => {
     setYearTo(y);
     if (y < yearFrom) setYearFrom(y);
   }, [yearFrom]);
+
+  const handleProjectChange = useCallback((projectId: string | null, project: Project | null) => {
+    setSelectedProjectId(projectId);
+    if (project?.start_date) {
+      setYearFrom(new Date(project.start_date).getFullYear());
+    } else if (!projectId) {
+      setYearFrom(currentYear);
+    }
+    if (project?.gu_return_date) {
+      setYearTo(new Date(project.gu_return_date).getFullYear());
+    } else if (!projectId) {
+      setYearTo(currentYear);
+    }
+  }, []);
 
   const handleSave = async () => {
     try {
@@ -48,7 +63,7 @@ export const BddsPage = () => {
         onSave={handleSave}
         saving={saving}
         selectedProjectId={selectedProjectId}
-        onProjectChange={setSelectedProjectId}
+        onProjectChange={handleProjectChange}
       />
       {loading ? (
         <div className="page-center">
