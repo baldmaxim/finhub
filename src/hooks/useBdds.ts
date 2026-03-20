@@ -3,6 +3,7 @@ import type { BddsCategory, BddsSection, BddsRow, MonthValues } from '../types/b
 import * as bddsService from '../services/bddsService';
 import * as bddsIncomeService from '../services/bddsIncomeService';
 import * as bdrSubService from '../services/bdrSubService';
+import * as receiptService from '../services/bddsReceiptService';
 import { SECTION_ORDER, SECTION_NAMES, MONTHS, buildYearMonthSlots } from '../utils/constants';
 import { BDR_SUB_TO_BDDS_NAME } from '../utils/bdrConstants';
 import type { BdrSubType } from '../types/bdr';
@@ -179,11 +180,12 @@ export function useBdds(yearFrom: number, yearTo: number, projectId: string | nu
       }
 
       for (const yr of years) {
-        const [planEntries, factEntries, yearIncomeTotals, bddsTotals] = await Promise.all([
+        const [planEntries, factEntries, yearIncomeTotals, bddsTotals, receiptFacts] = await Promise.all([
           bddsService.getEntries(yr, 'plan', pid),
           bddsService.getEntries(yr, 'fact', pid),
           bddsIncomeService.getIncomeTotalsByMonth(yr, pid),
           bdrSubService.getSubTotalsForBdds(yr, pid),
+          receiptService.getReceiptFactTotals(yr, pid),
         ]);
 
         const planMap = new Map<string, MonthValues>();
@@ -199,6 +201,15 @@ export function useBdds(yearFrom: number, yearTo: number, projectId: string | nu
           if (!factMap.has(entry.category_id)) factMap.set(entry.category_id, {});
           const m = factMap.get(entry.category_id)!;
           m[entry.month] = (m[entry.month] || 0) + Number(entry.amount);
+        }
+
+        // Автозаполнение факта из bdds_receipt_details
+        for (const [catId, months] of receiptFacts) {
+          if (!factMap.has(catId)) factMap.set(catId, {});
+          const m = factMap.get(catId)!;
+          for (const [month, amount] of Object.entries(months)) {
+            m[Number(month)] = (m[Number(month)] || 0) + amount;
+          }
         }
 
         // Автозаполнение БДДС плана из bdr_sub_entries (Сумма, сдвиг +1 месяц)

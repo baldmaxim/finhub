@@ -84,6 +84,32 @@ export async function deleteReceipt(id: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function getReceiptFactTotals(
+  year: number,
+  projectId?: string
+): Promise<Map<string, MonthValues>> {
+  let query = supabase
+    .from('bdds_receipt_details')
+    .select('category_id, month, amount')
+    .eq('year', year);
+
+  if (projectId) {
+    query = query.eq('project_id', projectId);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+
+  const result = new Map<string, MonthValues>();
+  for (const row of (data ?? [])) {
+    const catId = row.category_id as string;
+    if (!result.has(catId)) result.set(catId, {});
+    const m = result.get(catId)!;
+    m[row.month as number] = (m[row.month as number] || 0) + Number(row.amount);
+  }
+  return result;
+}
+
 export async function deleteAllReceipts(
   projectId: string,
   categoryId: string,
