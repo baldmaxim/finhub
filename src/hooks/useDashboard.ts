@@ -10,7 +10,7 @@ import { OVERHEAD_CODES } from '../utils/bdrConstants';
 import { calculateNetCashFlow } from '../utils/calculations';
 import type { IBdrDashboardData, IBddsDashboardData, IMonthDataPoint, IIncomeByProjectPoint, ICostItem, IWaterfallItem } from '../types/dashboard';
 import type { Project } from '../types/projects';
-import type { MonthValues } from '../types/bdr';
+import type { MonthValues, BdrSubType } from '../types/bdr';
 import type { BddsCategory, BddsRow, SectionCode } from '../types/bdds';
 
 interface IUseDashboardResult {
@@ -50,6 +50,7 @@ const COST_LABELS: Record<string, string> = {
 };
 
 const COST_CODES = Object.keys(COST_LABELS);
+const OVERHEAD_SUB_TYPES = OVERHEAD_CODES.filter(c => c !== 'overhead_01') as BdrSubType[];
 
 function buildEntryMap(entries: Array<{ row_code?: string; category_id?: string; month: number; amount: number }>, keyField: 'row_code' | 'category_id'): EntryMap {
   const map: EntryMap = new Map();
@@ -83,7 +84,7 @@ function calcBdr(code: string, month: number, type: 'plan' | 'fact', d: IYearBdr
       return type === 'plan' ? v(code, month) : (d.subTotals[code]?.[month] ?? v(code, month));
     case 'cost_overhead':
       return OVERHEAD_CODES.reduce((sum, c) => {
-        if (c === 'overhead_01' && type === 'fact') return sum + (d.subTotals['overhead_01']?.[month] || 0);
+        if (type === 'fact' && d.subTotals[c]) return sum + (d.subTotals[c]?.[month] || 0);
         return sum + v(c, month);
       }, 0);
     case 'cost_total':
@@ -127,7 +128,7 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
 
       const [bdrResults, bddsResults, allProjects] = await Promise.all([
         Promise.all(years.map(async (year): Promise<IYearBdrData> => {
-          const [planEntries, factEntries, smr, mat, lab, sub, des, ren, ovl, act] = await Promise.all([
+          const [planEntries, factEntries, smr, mat, lab, sub, des, ren, ovl, ovhMap, act] = await Promise.all([
             bdrService.getEntries(year, 'plan', pid),
             bdrService.getEntries(year, 'fact', pid),
             bdrService.getSmrTotalsByMonth(year, pid),
@@ -137,6 +138,7 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
             bdrSubService.getSubTotalsByMonth('design', year, pid),
             bdrSubService.getSubTotalsByMonth('rental', year, pid),
             bdrSubService.getSubTotalsByMonth('overhead_labor', year, pid),
+            bdrSubService.getMultiSubTotalsByMonth(OVERHEAD_SUB_TYPES, year, pid),
             actualExecutionService.getAggregatedTotals(year, pid),
           ]);
           return {
@@ -148,6 +150,7 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
             subTotals: {
               cost_materials: mat, cost_labor: lab, cost_subcontract: sub,
               cost_design: des, cost_rental: ren, overhead_01: ovl,
+              ...ovhMap,
             },
           };
         })),
