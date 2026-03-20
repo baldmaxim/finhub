@@ -28,9 +28,18 @@ export const BddsPlanFactChart: FC<IProps> = ({ data }) => {
       items: [
         {
           channel: 'y',
+          name: '',
           valueFormatter: (v: number) => v.toLocaleString('ru-RU', { maximumFractionDigits: 0 }) + ' ₽',
         },
       ],
+      render: (_: unknown, { items }: { items: Array<{ name: string; value: string; color: string }> }) => {
+        return `<div style="padding:8px">
+          ${items.map((item) => {
+            const label = item.color === '#1890ff' ? 'План' : 'Факт';
+            return `<div><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${item.color};margin-right:6px"></span>${label}: ${item.value}</div>`;
+          }).join('')}
+        </div>`;
+      },
     },
     interaction: {
       tooltip: { shared: true },

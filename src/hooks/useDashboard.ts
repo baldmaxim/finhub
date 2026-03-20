@@ -4,6 +4,7 @@ import * as bdrSubService from '../services/bdrSubService';
 import * as actualExecutionService from '../services/actualExecutionService';
 import * as bddsService from '../services/bddsService';
 import * as bddsIncomeService from '../services/bddsIncomeService';
+import * as receiptService from '../services/bddsReceiptService';
 import * as projectsService from '../services/projectsService';
 import { MONTHS, SECTION_NAMES, SECTION_ORDER } from '../utils/constants';
 import { OVERHEAD_CODES } from '../utils/bdrConstants';
@@ -157,18 +158,28 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
           };
         })),
         Promise.all(years.map(async (year): Promise<IYearBddsData> => {
-          const [categories, planEntries, factEntries, incomeTotals, incomeByProject, bddsPlanFromSub] = await Promise.all([
+          const [categories, planEntries, factEntries, incomeTotals, incomeByProject, bddsPlanFromSub, receiptFacts] = await Promise.all([
             bddsService.getCategories(),
             bddsService.getEntries(year, 'plan', pid),
             bddsService.getEntries(year, 'fact', pid),
             bddsIncomeService.getIncomeTotalsByMonth(year, pid),
             bddsIncomeService.getIncomeTotalsByMonthByProject(year),
             bdrSubService.getSubTotalsForBdds(year, pid),
+            receiptService.getReceiptFactTotals(year, pid),
           ]);
+          const factMap = buildEntryMap(factEntries, 'category_id');
+          // Добавляем факт из bdds_receipt_details
+          for (const [catId, months] of receiptFacts) {
+            if (!factMap.has(catId)) factMap.set(catId, {});
+            const m = factMap.get(catId)!;
+            for (const [month, amount] of Object.entries(months)) {
+              m[Number(month)] = (m[Number(month)] || 0) + amount;
+            }
+          }
           return {
             year, categories,
             planMap: buildEntryMap(planEntries, 'category_id'),
-            factMap: buildEntryMap(factEntries, 'category_id'),
+            factMap,
             incomeTotals,
             incomeByProject,
             bddsPlanFromSub,
