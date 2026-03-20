@@ -65,6 +65,18 @@ export const BdrMaterialsDeltaChart: FC<IProps> = ({ data }) => {
             labelFormatter: (v: number) => (v / 1000000).toFixed(1) + 'М',
           },
         },
+        annotations: [
+          {
+            type: 'lineY' as const,
+            yField: 0,
+            style: {
+              stroke: '#ff4d4f',
+              strokeOpacity: 0.45,
+              lineDash: [4, 4],
+              lineWidth: 1,
+            },
+          },
+        ],
         tooltip: {
           items: [{ channel: 'y', name: 'Дельта (накопл.)', valueFormatter }],
         },
