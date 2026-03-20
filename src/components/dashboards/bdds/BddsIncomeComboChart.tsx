@@ -24,6 +24,15 @@ export const BddsIncomeComboChart: FC<IProps> = ({ data }) => {
         yField: 'value',
         colorField: 'project',
         stack: true,
+        scale: {
+          color: {
+            type: 'ordinal',
+            range: [
+              '#1890ff', '#52c41a', '#faad14', '#722ed1', '#13c2c2',
+              '#eb2f96', '#fa8c16', '#2f54eb', '#a0d911', '#ff4d4f',
+            ],
+          },
+        },
         style: {
           maxWidth: 40,
         },
