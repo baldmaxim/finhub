@@ -53,6 +53,13 @@ const parseAmount = (raw: unknown): number => {
   return 0;
 };
 
+const isValidDate = (dateStr: string): boolean => {
+  const d = new Date(dateStr);
+  if (isNaN(d.getTime())) return false;
+  const [y, m, day] = dateStr.split('-').map(Number);
+  return d.getFullYear() === y && d.getMonth() + 1 === m && d.getDate() === day;
+};
+
 const parseDate = (raw: unknown): string => {
   if (!raw) return '';
   if (raw instanceof Date) return raw.toISOString().split('T')[0];
@@ -65,7 +72,8 @@ const parseDate = (raw: unknown): string => {
     const dotParts = raw.split('.');
     if (dotParts.length === 3 && dotParts[0].length <= 2 && dotParts[1].length <= 2) {
       const y = dotParts[2].length === 2 ? `20${dotParts[2]}` : dotParts[2];
-      return `${y}-${dotParts[1].padStart(2, '0')}-${dotParts[0].padStart(2, '0')}`;
+      const result = `${y}-${dotParts[1].padStart(2, '0')}-${dotParts[0].padStart(2, '0')}`;
+      return isValidDate(result) ? result : '';
     }
     const d = new Date(raw);
     if (!isNaN(d.getTime())) return d.toISOString().split('T')[0];
