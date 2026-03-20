@@ -1,5 +1,6 @@
 import { useState, useCallback } from 'react';
 import { Card, Spin, Alert, message } from 'antd';
+import { useNavigate } from 'react-router-dom';
 import { useBdds } from '../../hooks/useBdds';
 import { BddsToolbar } from './BddsToolbar';
 import { BddsTable } from './BddsTable';
@@ -8,6 +9,7 @@ import type { Project } from '../../types/projects';
 const currentYear = new Date().getFullYear();
 
 export const BddsPage = () => {
+  const navigate = useNavigate();
   const [yearFrom, setYearFrom] = useState(currentYear);
   const [yearTo, setYearTo] = useState(currentYear);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
@@ -39,6 +41,10 @@ export const BddsPage = () => {
       setYearTo(currentYear);
     }
   }, []);
+
+  const handleNavigateReceipts = useCallback((categoryId: string) => {
+    navigate(`/bdds/receipts?categoryId=${categoryId}`);
+  }, [navigate]);
 
   const handleSave = async () => {
     try {
@@ -77,6 +83,7 @@ export const BddsPage = () => {
           expandedParents={expandedParents}
           onToggleParent={toggleParent}
           onUpdateFact={isReadOnly ? undefined : updateFactEntry}
+          onNavigateReceipts={handleNavigateReceipts}
         />
       )}
     </Card>

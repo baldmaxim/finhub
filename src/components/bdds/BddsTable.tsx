@@ -1,11 +1,13 @@
 import { useMemo } from 'react';
 import { Table } from 'antd';
-import { RightOutlined, DownOutlined } from '@ant-design/icons';
+import { RightOutlined, DownOutlined, FileTextOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { BddsSection, BddsTableRow } from '../../types/bdds';
 import type { YearMonthSlot } from '../../utils/constants';
 import { MONTHS } from '../../utils/constants';
 import { buildMonthColumns, buildTotalColumns } from './BddsMonthColumns';
+
+const RECEIPT_ROW_NAME = 'Поступление от продажи продукции и товаров, выполнения работ, оказания услуг';
 
 interface IProps {
   sections: BddsSection[];
@@ -14,9 +16,10 @@ interface IProps {
   expandedParents: Set<string>;
   onToggleParent: (categoryId: string) => void;
   onUpdateFact?: (categoryId: string, month: number, amount: number) => void;
+  onNavigateReceipts?: (categoryId: string) => void;
 }
 
-export const BddsTable = ({ sections, yearSections, yearMonthSlots, expandedParents, onToggleParent, onUpdateFact }: IProps) => {
+export const BddsTable = ({ sections, yearSections, yearMonthSlots, expandedParents, onToggleParent, onUpdateFact, onNavigateReceipts }: IProps) => {
   const isMultiYear = yearMonthSlots ? yearMonthSlots.length > 12 : false;
 
   const dataSource = useMemo((): BddsTableRow[] => {
@@ -191,6 +194,16 @@ export const BddsTable = ({ sections, yearSections, yearMonthSlots, expandedPare
             );
           }
           if (record.isChild) {
+            if (record.name === RECEIPT_ROW_NAME && record.categoryId && onNavigateReceipts) {
+              return (
+                <span
+                  className="bdds-child-indent bdds-receipt-link"
+                  onClick={() => onNavigateReceipts(record.categoryId!)}
+                >
+                  <FileTextOutlined /> {text}
+                </span>
+              );
+            }
             return <span className="bdds-child-indent">{text}</span>;
           }
           return text;

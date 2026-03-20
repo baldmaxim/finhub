@@ -364,6 +364,20 @@ body {
   padding-left: 24px;
 }
 
+/* БДДС — ссылка на поступления */
+.bdds-receipt-link {
+  color: #1677ff;
+  cursor: pointer;
+}
+.bdds-receipt-link:hover {
+  text-decoration: underline;
+}
+
+/* Тулбар поступлений */
+.receipt-toolbar {
+  margin-bottom: 16px;
+}
+
 /* Адаптивность БДР */
 @media (max-width: 768px) {
   .bdr-overhead-indent {
