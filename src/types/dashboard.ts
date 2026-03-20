@@ -51,6 +51,11 @@ export interface IIncomeByProjectPoint {
   project: string;
 }
 
+export interface IMaterialsDeltaData {
+  columns: Array<{ month: string; value: number; type: string }>;
+  line: Array<{ month: string; value: number; type: string }>;
+}
+
 export interface IBddsDashboardData {
   planFactIncome: IMonthDataPoint[];
   incomeByProject: IIncomeByProjectPoint[];

@@ -40,7 +40,7 @@ export const DashboardPage = () => {
     }
   }, []);
 
-  const { bdrData, bddsData, loading, error } = useDashboard(yearFrom, yearTo, selectedProjectId);
+  const { bdrData, bddsData, materialsDelta, loading, error } = useDashboard(yearFrom, yearTo, selectedProjectId);
   const { data: bubbleData, loading: bubbleLoading, error: bubbleError } = useBdrBubbleData(yearFrom, yearTo);
   const { data: execVsKsData, loading: execVsKsLoading, error: execVsKsError } = useBdrExecutionVsKs(yearFrom, yearTo, selectedProjectId);
 
@@ -57,7 +57,7 @@ export const DashboardPage = () => {
     {
       key: 'bdr2',
       label: 'БДР #2',
-      children: <BdrDashboard2 bubbleData={bubbleData} executionVsKsData={execVsKsData} loading={bubbleLoading || execVsKsLoading} />,
+      children: <BdrDashboard2 bubbleData={bubbleData} executionVsKsData={execVsKsData} materialsDelta={materialsDelta} loading={bubbleLoading || execVsKsLoading || loading} />,
     },
     {
       key: 'bdds',

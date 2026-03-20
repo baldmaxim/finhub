@@ -8,7 +8,7 @@ import * as projectsService from '../services/projectsService';
 import { MONTHS, SECTION_NAMES, SECTION_ORDER } from '../utils/constants';
 import { OVERHEAD_CODES } from '../utils/bdrConstants';
 import { calculateNetCashFlow } from '../utils/calculations';
-import type { IBdrDashboardData, IBddsDashboardData, IMonthDataPoint, IIncomeByProjectPoint, ICostItem, IWaterfallItem } from '../types/dashboard';
+import type { IBdrDashboardData, IBddsDashboardData, IMaterialsDeltaData, IMonthDataPoint, IIncomeByProjectPoint, ICostItem, IWaterfallItem } from '../types/dashboard';
 import type { Project } from '../types/projects';
 import type { MonthValues, BdrSubType } from '../types/bdr';
 import type { BddsCategory, BddsRow, SectionCode } from '../types/bdds';
@@ -16,6 +16,7 @@ import type { BddsCategory, BddsRow, SectionCode } from '../types/bdds';
 interface IUseDashboardResult {
   bdrData: IBdrDashboardData | null;
   bddsData: IBddsDashboardData | null;
+  materialsDelta: IMaterialsDeltaData | null;
   loading: boolean;
   error: string | null;
 }
@@ -354,5 +355,38 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
     };
   }, [bddsYears, projects, loading, multiYear]);
 
-  return { bdrData, bddsData, loading, error };
+  const materialsDelta = useMemo((): IMaterialsDeltaData | null => {
+    if (loading || !bdrYears.length || !bddsYears.length) return null;
+
+    const columns: IMaterialsDeltaData['columns'] = [];
+    const line: IMaterialsDeltaData['line'] = [];
+    let cumDelta = 0;
+
+    const BDDS_MAT_NAME = 'Материальные расходы (Закупка материалов)';
+
+    for (let i = 0; i < bdrYears.length; i++) {
+      const bd = bdrYears[i];
+      const dd = bddsYears[i];
+      if (!dd) continue;
+
+      const matCat = dd.categories.find((c) => c.name === BDDS_MAT_NAME);
+
+      for (const m of MONTHS) {
+        const label = monthLabel(m.key, bd.year, multiYear);
+
+        const bddsFact = matCat ? getVal(dd.factMap, matCat.id, m.key) : 0;
+        const bdrFact = calcBdr('cost_materials', m.key, 'fact', bd);
+
+        columns.push({ month: label, value: bddsFact, type: 'БДДС Оплата' });
+        columns.push({ month: label, value: bdrFact, type: 'БДР Списание' });
+
+        cumDelta += bddsFact - bdrFact;
+        line.push({ month: label, value: cumDelta, type: 'Дельта (накопл.)' });
+      }
+    }
+
+    return { columns, line };
+  }, [bdrYears, bddsYears, loading, multiYear]);
+
+  return { bdrData, bddsData, materialsDelta, loading, error };
 }
