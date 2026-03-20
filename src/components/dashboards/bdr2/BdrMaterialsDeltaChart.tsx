@@ -66,7 +66,7 @@ export const BdrMaterialsDeltaChart: FC<IProps> = ({ data }) => {
           },
         },
         tooltip: {
-          items: [{ channel: 'y', name: 'Дельта (накопл.)', valueFormatter }],
+          items: [{ channel: 'y', name: 'Дельта', valueFormatter }],
         },
       },
       {
