@@ -23,7 +23,7 @@ export async function getEntries(year: number, entryType: EntryType, projectId?:
     query = query.eq('project_id', projectId);
   }
 
-  const { data, error } = await query;
+  const { data, error } = await query.limit(10000);
   if (error) throw error;
   return data as BddsEntry[];
 }

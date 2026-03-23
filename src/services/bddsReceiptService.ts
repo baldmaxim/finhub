@@ -99,7 +99,7 @@ export async function getReceiptFactTotals(
     query = query.eq('project_id', projectId);
   }
 
-  const { data, error } = await query;
+  const { data, error } = await query.limit(10000);
   if (error) throw error;
 
   const result = new Map<string, MonthValues>();
