@@ -141,7 +141,7 @@ export async function getSmrTotalsByMonth(year: number, projectId?: string): Pro
   const totals: Record<number, number> = {};
   for (const e of data) {
     const month = parseInt(e.month_key.split('-')[1], 10);
-    totals[month] = (totals[month] || 0) + Number(e.amount);
+    totals[month] = (totals[month] || 0) + removeVat(Number(e.amount), year);
   }
   return totals;
 }

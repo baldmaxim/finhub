@@ -77,13 +77,16 @@ export async function getAggregatedTotals(year: number, projectId?: string): Pro
 
   if (error) throw error;
 
+  const vatRate = year >= 2026 ? 22 : 20;
+  const vatDivisor = (100 + vatRate) / 100;
+
   const ks: Record<number, number> = {};
   const fact: Record<number, number> = {};
 
   for (const e of data) {
     const month = parseInt(e.month_key.split('-')[1], 10);
-    ks[month] = (ks[month] || 0) + Number(e.ks_amount);
-    fact[month] = (fact[month] || 0) + Number(e.fact_amount);
+    ks[month] = (ks[month] || 0) + Number(e.ks_amount) / vatDivisor;
+    fact[month] = (fact[month] || 0) + Number(e.fact_amount) / vatDivisor;
   }
 
   return { ks, fact };
