@@ -43,7 +43,7 @@ export const BddsPlanFactChart: FC<IProps> = ({ data }) => {
       {
         type: 'area' as const,
         data: redAreaData,
-        encode: { x: 'month', y: 'upper', y1: 'lower' },
+        encode: { x: 'month', y: ['lower', 'upper'] },
         style: { fill: '#ff4d4f', fillOpacity: 0.25, stroke: 'transparent' },
         tooltip: false,
         axis: false,
@@ -52,7 +52,7 @@ export const BddsPlanFactChart: FC<IProps> = ({ data }) => {
       {
         type: 'area' as const,
         data: greenAreaData,
-        encode: { x: 'month', y: 'upper', y1: 'lower' },
+        encode: { x: 'month', y: ['lower', 'upper'] },
         style: { fill: '#52c41a', fillOpacity: 0.25, stroke: 'transparent' },
         tooltip: false,
         axis: false,
