@@ -308,7 +308,8 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
         const rows: BddsRow[] = sectionCats.filter((c) => !c.is_calculated).map((c) => {
           let months = { [monthKey]: getVal(map, c.id, monthKey) };
           if (!useFact && sectionCode === 'operating' && c.row_type === 'income') {
-            months = { [monthKey]: d.incomeTotals[monthKey] || 0 };
+            const incomeVal = d.incomeTotals[monthKey] || getVal(d.planMap, c.id, monthKey);
+            months = { [monthKey]: incomeVal };
           }
           return { categoryId: c.id, name: c.name, rowType: c.row_type, isCalculated: false, months, total: 0, factMonths: {}, factTotal: 0, parentId: null };
         });
@@ -321,10 +322,30 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
 
         // План/факт поступлений (operating income)
         const opIncomeCats = cats.filter((c) => c.section_code === 'operating' && c.row_type === 'income' && !c.is_calculated);
-        const planInc = d.incomeTotals[m.key] || 0;
+        let planInc = d.incomeTotals[m.key] || 0;
+        // Fallback: если нет данных в bdds_income_entries, берём план из bdds_entries
+        if (!planInc) {
+          for (const cat of opIncomeCats) {
+            planInc += getVal(d.planMap, cat.id, m.key);
+          }
+          // Ещё fallback: legacy-записи могут быть на родительской категории
+          if (!planInc) {
+            const parentIncome = cats.find((c) => c.section_code === 'operating' && c.row_type === 'income' && c.is_calculated);
+            if (parentIncome) {
+              planInc = getVal(d.planMap, parentIncome.id, m.key);
+            }
+          }
+        }
         let factInc = 0;
         for (const cat of opIncomeCats) {
           factInc += getVal(d.factMap, cat.id, m.key);
+        }
+        // Fallback: legacy факт на родительской категории
+        if (!factInc) {
+          const parentIncome = cats.find((c) => c.section_code === 'operating' && c.row_type === 'income' && c.is_calculated);
+          if (parentIncome) {
+            factInc = getVal(d.factMap, parentIncome.id, m.key);
+          }
         }
         planIncTotal += planInc;
         factIncTotal += factInc;
