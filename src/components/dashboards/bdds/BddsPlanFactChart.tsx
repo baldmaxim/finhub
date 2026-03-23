@@ -46,6 +46,7 @@ export const BddsPlanFactChart: FC<IProps> = ({ data }) => {
         xField: 'month',
         yField: 'upper',
         y1Field: 'lower',
+        scale: { y: { key: 'yShared', independent: false } },
         style: { fill: '#ff4d4f', fillOpacity: 0.25, stroke: 'transparent' },
         tooltip: false,
         axis: false,
@@ -57,6 +58,7 @@ export const BddsPlanFactChart: FC<IProps> = ({ data }) => {
         xField: 'month',
         yField: 'upper',
         y1Field: 'lower',
+        scale: { y: { key: 'yShared', independent: false } },
         style: { fill: '#52c41a', fillOpacity: 0.25, stroke: 'transparent' },
         tooltip: false,
         axis: false,
@@ -69,6 +71,7 @@ export const BddsPlanFactChart: FC<IProps> = ({ data }) => {
         yField: 'value',
         colorField: 'type',
         scale: {
+          y: { key: 'yShared', independent: false },
           color: {
             domain: ['План', 'Факт'],
             range: ['#1890ff', '#52c41a'],
