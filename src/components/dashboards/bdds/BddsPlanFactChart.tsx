@@ -1,6 +1,6 @@
 import { FC, useMemo, useState } from 'react';
 import { Card, Radio } from 'antd';
-import { Mix, Line } from '@ant-design/charts';
+import { Mix } from '@ant-design/charts';
 import type { IBddsDashboardData } from '../../../types/dashboard';
 
 type ChartMode = 'monthly' | 'cumulative';
@@ -49,7 +49,19 @@ export const BddsPlanFactChart: FC<IProps> = ({ data }) => {
       cumulativeData.push({ month: m, value: cumFact, type: 'Факт' });
     }
 
-    return { redAreaData, greenAreaData, lineData: raw, cumulativeData };
+    const cumRedAreaData = months.map(m => {
+      const cumPlanVal = cumulativeData.find(d => d.month === m && d.type === 'План')?.value ?? 0;
+      const cumFactVal = cumulativeData.find(d => d.month === m && d.type === 'Факт')?.value ?? 0;
+      return { month: m, upper: cumPlanVal, lower: Math.min(cumPlanVal, cumFactVal) };
+    });
+
+    const cumGreenAreaData = months.map(m => {
+      const cumPlanVal = cumulativeData.find(d => d.month === m && d.type === 'План')?.value ?? 0;
+      const cumFactVal = cumulativeData.find(d => d.month === m && d.type === 'Факт')?.value ?? 0;
+      return { month: m, upper: cumFactVal, lower: Math.min(cumPlanVal, cumFactVal) };
+    });
+
+    return { redAreaData, greenAreaData, lineData: raw, cumulativeData, cumRedAreaData, cumGreenAreaData };
   }, [data.planFactIncome]);
 
   const monthlyConfig = {
@@ -114,31 +126,61 @@ export const BddsPlanFactChart: FC<IProps> = ({ data }) => {
   };
 
   const cumulativeConfig = {
-    data: cumulativeData,
-    xField: 'month',
-    yField: 'value',
-    colorField: 'type',
-    scale: {
-      color: {
-        domain: ['План', 'Факт'],
-        range: ['#1890ff', '#52c41a'],
+    children: [
+      {
+        type: 'area' as const,
+        data: cumRedAreaData,
+        xField: 'month',
+        yField: 'upper',
+        y1Field: 'lower',
+        scale: { y: { key: 'yShared', independent: false } },
+        style: { fill: '#ff4d4f', fillOpacity: 0.25, stroke: 'transparent' },
+        tooltip: false,
+        axis: false,
+        legend: false,
       },
-    },
-    axis: {
-      y: {
-        labelFormatter: (v: number) => (v / 1000000).toFixed(1) + 'М',
+      {
+        type: 'area' as const,
+        data: cumGreenAreaData,
+        xField: 'month',
+        yField: 'upper',
+        y1Field: 'lower',
+        scale: { y: { key: 'yShared', independent: false } },
+        style: { fill: '#52c41a', fillOpacity: 0.25, stroke: 'transparent' },
+        tooltip: false,
+        axis: false,
+        legend: false,
       },
-    },
-    style: { lineWidth: 2 },
-    tooltip: {
-      items: [
-        {
-          channel: 'y',
-          valueFormatter: (v: number) =>
-            v.toLocaleString('ru-RU', { maximumFractionDigits: 0 }) + ' ₽',
+      {
+        type: 'line' as const,
+        data: cumulativeData,
+        xField: 'month',
+        yField: 'value',
+        colorField: 'type',
+        scale: {
+          y: { key: 'yShared', independent: false },
+          color: {
+            domain: ['План', 'Факт'],
+            range: ['#1890ff', '#52c41a'],
+          },
         },
-      ],
-    },
+        axis: {
+          y: {
+            labelFormatter: (v: number) => (v / 1000000).toFixed(1) + 'М',
+          },
+        },
+        style: { lineWidth: 2 },
+        tooltip: {
+          items: [
+            {
+              channel: 'y',
+              valueFormatter: (v: number) =>
+                v.toLocaleString('ru-RU', { maximumFractionDigits: 0 }) + ' ₽',
+            },
+          ],
+        },
+      },
+    ],
     interaction: {
       tooltip: { shared: true },
     },
@@ -162,7 +204,7 @@ export const BddsPlanFactChart: FC<IProps> = ({ data }) => {
       {mode === 'monthly' ? (
         <Mix {...monthlyConfig} height={300} />
       ) : (
-        <Line {...cumulativeConfig} height={300} />
+        <Mix {...cumulativeConfig} height={300} />
       )}
     </Card>
   );
