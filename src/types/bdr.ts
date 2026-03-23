@@ -9,7 +9,7 @@ export type BdrSubType =
   | 'overhead_10' | 'overhead_11' | 'overhead_12' | 'overhead_13'
   | 'overhead_14' | 'overhead_15' | 'overhead_16' | 'overhead_17'
   | 'overhead_18' | 'overhead_19' | 'overhead_20' | 'overhead_21'
-  | 'overhead_22' | 'overhead_23' | 'overhead_24';
+  | 'overhead_22' | 'overhead_23' | 'overhead_24' | 'overhead_25';
 
 export interface BdrEntry {
   id: string;
@@ -52,7 +52,7 @@ export const NDS_SUB_TYPES: BdrSubType[] = [
   'overhead_10', 'overhead_11', 'overhead_12', 'overhead_13',
   'overhead_14', 'overhead_15', 'overhead_16', 'overhead_17',
   'overhead_18', 'overhead_19', 'overhead_20', 'overhead_21',
-  'overhead_22', 'overhead_23', 'overhead_24',
+  'overhead_22', 'overhead_23', 'overhead_24', 'overhead_25',
 ];
 
 export interface BdrRowDef {

@@ -57,6 +57,7 @@ export const BDR_OVERHEAD_ROWS: BdrRowDef[] = [
   { code: 'overhead_22', name: 'Страхование', isClickable: true, subType: 'overhead_22' as const },
   { code: 'overhead_23', name: 'Работы и затраты гарантийного периода', isClickable: true, subType: 'overhead_23' as const },
   { code: 'overhead_24', name: 'Прочие затраты и услуги', isClickable: true, subType: 'overhead_24' as const },
+  { code: 'overhead_25', name: 'Представительские расходы', isClickable: true, subType: 'overhead_25' as const },
 ];
 
 export const OVERHEAD_CODES = BDR_OVERHEAD_ROWS.map((r) => r.code);
@@ -92,6 +93,7 @@ export const BDR_SUB_TO_BDDS_NAME: Partial<Record<BdrSubType, string>> = {
   overhead_22: 'Страхование',
   overhead_23: 'Работы и затраты гарантийного периода',
   overhead_24: 'Прочие затраты и услуги',
+  overhead_25: 'Представительские расходы',
 };
 
 // Sub-типы, для которых БДДС план заполняется из bdr_sub_entries (Сумма, сдвиг +1 месяц)
@@ -137,4 +139,5 @@ export const BDR_SUB_TYPES: Record<BdrSubType, { title: string; rowCode: string 
   overhead_22: { title: 'Страхование', rowCode: 'overhead_22' },
   overhead_23: { title: 'Работы и затраты гарантийного периода', rowCode: 'overhead_23' },
   overhead_24: { title: 'Прочие затраты и услуги', rowCode: 'overhead_24' },
+  overhead_25: { title: 'Представительские расходы', rowCode: 'overhead_25' },
 };
