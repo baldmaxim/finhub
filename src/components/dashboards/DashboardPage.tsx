@@ -7,6 +7,7 @@ import { DashboardToolbar } from './DashboardToolbar';
 import { BdrDashboard } from './bdr/BdrDashboard';
 import { BdrDashboard2 } from './bdr2/BdrDashboard2';
 import { BddsDashboard } from './bdds/BddsDashboard';
+import { BddsDashboard2 } from './bdds2/BddsDashboard2';
 import type { Project } from '../../types/projects';
 
 const currentYear = new Date().getFullYear();
@@ -63,6 +64,11 @@ export const DashboardPage = () => {
       key: 'bdds',
       label: 'БДДС',
       children: <BddsDashboard data={bddsData} loading={loading} />,
+    },
+    {
+      key: 'bdds2',
+      label: 'БДДС #2',
+      children: <BddsDashboard2 data={bddsData} loading={loading} />,
     },
   ];
 
