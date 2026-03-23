@@ -1,14 +1,18 @@
-import { FC, useMemo } from 'react';
-import { Card } from 'antd';
-import { Mix } from '@ant-design/charts';
+import { FC, useMemo, useState } from 'react';
+import { Card, Radio } from 'antd';
+import { Mix, Line } from '@ant-design/charts';
 import type { IBddsDashboardData } from '../../../types/dashboard';
+
+type ChartMode = 'monthly' | 'cumulative';
 
 interface IProps {
   data: IBddsDashboardData;
 }
 
 export const BddsPlanFactChart: FC<IProps> = ({ data }) => {
-  const { redAreaData, greenAreaData, lineData } = useMemo(() => {
+  const [mode, setMode] = useState<ChartMode>('monthly');
+
+  const { redAreaData, greenAreaData, lineData, cumulativeData } = useMemo(() => {
     const raw = data.planFactIncome;
     const months: string[] = [];
     const planMap = new Map<string, number>();
@@ -35,10 +39,20 @@ export const BddsPlanFactChart: FC<IProps> = ({ data }) => {
       return { month: m, upper: fact, lower: Math.min(plan, fact) };
     });
 
-    return { redAreaData, greenAreaData, lineData: raw };
+    let cumPlan = 0;
+    let cumFact = 0;
+    const cumulativeData: Array<{ month: string; value: number; type: string }> = [];
+    for (const m of months) {
+      cumPlan += planMap.get(m) ?? 0;
+      cumFact += factMap.get(m) ?? 0;
+      cumulativeData.push({ month: m, value: cumPlan, type: 'План' });
+      cumulativeData.push({ month: m, value: cumFact, type: 'Факт' });
+    }
+
+    return { redAreaData, greenAreaData, lineData: raw, cumulativeData };
   }, [data.planFactIncome]);
 
-  const config = {
+  const monthlyConfig = {
     children: [
       {
         type: 'area' as const,
@@ -99,9 +113,57 @@ export const BddsPlanFactChart: FC<IProps> = ({ data }) => {
     },
   };
 
+  const cumulativeConfig = {
+    data: cumulativeData,
+    xField: 'month',
+    yField: 'value',
+    colorField: 'type',
+    scale: {
+      color: {
+        domain: ['План', 'Факт'],
+        range: ['#1890ff', '#52c41a'],
+      },
+    },
+    axis: {
+      y: {
+        labelFormatter: (v: number) => (v / 1000000).toFixed(1) + 'М',
+      },
+    },
+    style: { lineWidth: 2 },
+    tooltip: {
+      items: [
+        {
+          channel: 'y',
+          valueFormatter: (v: number) =>
+            v.toLocaleString('ru-RU', { maximumFractionDigits: 0 }) + ' ₽',
+        },
+      ],
+    },
+    interaction: {
+      tooltip: { shared: true },
+    },
+  };
+
+  const titleExtra = (
+    <Radio.Group
+      value={mode}
+      onChange={e => setMode(e.target.value)}
+      size="small"
+      optionType="button"
+      buttonStyle="solid"
+    >
+      <Radio.Button value="monthly">Помесячно</Radio.Button>
+      <Radio.Button value="cumulative">Нарастающий итог</Radio.Button>
+    </Radio.Group>
+  );
+
   return (
-    <Card title="Поступления: план vs факт" size="small" className="dashboard-chart-card">
-      <Mix {...config} height={300} />
+    <Card title="Поступления: план vs факт" extra={titleExtra} size="small" className="dashboard-chart-card">
+      {mode === 'monthly' ? (
+        <Mix {...monthlyConfig} height={300} />
+      ) : (
+        <Line {...cumulativeConfig} height={300} />
+      )}
     </Card>
   );
 };
