@@ -114,7 +114,7 @@ function monthLabel(month: number, year: number, multiYear: boolean): string {
   return multiYear ? `${m?.short} ${String(year).slice(2)}` : (m?.short || '');
 }
 
-export function useDashboard(yearFrom: number, yearTo: number, projectId: string | null = null): IUseDashboardResult {
+export function useDashboard(yearFrom: number, yearTo: number, projectId: string | null = null, startMonth: number | null = null): IUseDashboardResult {
   const [bdrYears, setBdrYears] = useState<IYearBdrData[]>([]);
   const [bddsYears, setBddsYears] = useState<IYearBddsData[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
@@ -202,6 +202,11 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
 
   const multiYear = yearFrom !== yearTo;
 
+  const shouldShowMonth = useCallback((year: number, month: number): boolean => {
+    if (!startMonth || !projectId) return true;
+    return year > yearFrom || month >= startMonth;
+  }, [startMonth, projectId, yearFrom]);
+
   const bdrData = useMemo((): IBdrDashboardData | null => {
     if (loading || !bdrYears.length) return null;
 
@@ -216,6 +221,7 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
 
     for (const d of bdrYears) {
       for (const m of MONTHS) {
+        if (!shouldShowMonth(d.year, m.key)) continue;
         const label = monthLabel(m.key, d.year, multiYear);
         const rp = calcBdr('revenue', m.key, 'plan', d);
         const rf = calcBdr('revenue', m.key, 'fact', d);
@@ -257,6 +263,7 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
     const revenueByMonth: IMonthDataPoint[] = [];
     for (const d of bdrYears) {
       for (const m of MONTHS) {
+        if (!shouldShowMonth(d.year, m.key)) continue;
         const label = monthLabel(m.key, d.year, multiYear);
         revenueByMonth.push({ month: label, value: calcBdr('revenue', m.key, 'plan', d), type: 'План' });
         revenueByMonth.push({ month: label, value: calcBdr('revenue', m.key, 'fact', d), type: 'Факт' });
@@ -271,7 +278,7 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
       },
       scurve, costStructure, waterfall, marginPercent, revenueByMonth,
     };
-  }, [bdrYears, loading, multiYear]);
+  }, [bdrYears, loading, multiYear, shouldShowMonth]);
 
   const bddsData = useMemo((): IBddsDashboardData | null => {
     if (loading || !bddsYears.length) return null;
@@ -318,6 +325,7 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
       };
 
       for (const m of MONTHS) {
+        if (!shouldShowMonth(d.year, m.key)) continue;
         const label = monthLabel(m.key, d.year, multiYear);
 
         // План/факт поступлений (operating income)
@@ -388,7 +396,7 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
         planIncomeTotal: planIncTotal, factIncomeTotal: factIncTotal,
       },
     };
-  }, [bddsYears, projects, loading, multiYear]);
+  }, [bddsYears, projects, loading, multiYear, shouldShowMonth]);
 
   const materialsDelta = useMemo((): IMaterialsDeltaData | null => {
     if (loading || !bdrYears.length || !bddsYears.length) return null;
@@ -409,6 +417,7 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
       const matPlanFromSub = dd.bddsPlanFromSub['materials'] || {};
 
       for (const m of MONTHS) {
+        if (!shouldShowMonth(bd.year, m.key)) continue;
         const label = monthLabel(m.key, bd.year, multiYear);
 
         let bddsFact = matCat ? getVal(dd.factMap, matCat.id, m.key) : 0;
@@ -427,7 +436,7 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
     }
 
     return { columns, line };
-  }, [bdrYears, bddsYears, loading, multiYear]);
+  }, [bdrYears, bddsYears, loading, multiYear, shouldShowMonth]);
 
   return { bdrData, bddsData, materialsDelta, loading, error };
 }

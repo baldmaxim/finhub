@@ -15,6 +15,7 @@ export const DashboardPage = () => {
   const [yearFrom, setYearFrom] = useState(currentYear);
   const [yearTo, setYearTo] = useState(currentYear);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [startMonth, setStartMonth] = useState<number | null>(null);
 
   const handleYearFromChange = useCallback((y: number) => {
     setYearFrom(y);
@@ -29,14 +30,17 @@ export const DashboardPage = () => {
   const handleProjectChange = useCallback((projectId: string | null, project: Project | null) => {
     setSelectedProjectId(projectId);
     if (project?.start_date) {
-      setYearFrom(new Date(project.start_date).getFullYear());
+      const d = new Date(project.start_date);
+      setYearFrom(d.getFullYear());
+      setStartMonth(d.getMonth() + 1);
     } else if (!projectId) {
       setYearFrom(currentYear);
+      setStartMonth(null);
     }
     setYearTo(currentYear);
   }, []);
 
-  const { bdrData, bddsData, materialsDelta, loading, error } = useDashboard(yearFrom, yearTo, selectedProjectId);
+  const { bdrData, bddsData, materialsDelta, loading, error } = useDashboard(yearFrom, yearTo, selectedProjectId, startMonth);
   const { data: bubbleData, loading: bubbleLoading, error: bubbleError } = useBdrBubbleData(yearFrom, yearTo);
   const { data: execVsKsData, loading: execVsKsLoading, error: execVsKsError } = useBdrExecutionVsKs(yearFrom, yearTo, selectedProjectId);
 
