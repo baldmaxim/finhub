@@ -3,6 +3,7 @@ import type { BdrTableRow, BdrSubType, MonthValues } from '../types/bdr';
 import * as bdrService from '../services/bdrService';
 import * as bdrSubService from '../services/bdrSubService';
 import * as actualExecutionService from '../services/actualExecutionService';
+import * as fixedPlanService from '../services/bdrFixedExpensesPlanService';
 import type { ActualExecutionTotals } from '../types/actualExecution';
 import { BDR_ROWS, BDR_OVERHEAD_ROWS, OVERHEAD_CODES, COST_ROW_CODES } from '../utils/bdrConstants';
 import { MONTHS, buildYearMonthSlots } from '../utils/constants';
@@ -14,6 +15,7 @@ interface YearData {
   subTotals: Record<string, MonthValues>;
   smrTotals: MonthValues;
   actualTotals: ActualExecutionTotals;
+  fixedExpensesFactMonthly: number;
 }
 
 interface IUseBdrResult {
@@ -72,6 +74,9 @@ export function useBdr(yearFrom: number, yearTo: number, projectId: string | nul
       const smrAllTotal = await bdrService.getSmrAllYearsTotal(pid);
       const cumBefore = await bdrService.getRevenueCumulativeBefore(yearFrom, pid);
 
+      // Загружаем годовые планы ОФЗ
+      const fixedPlans = await fixedPlanService.getFixedExpensesPlans(yearFrom, yearTo);
+
       const newYearData = new Map<number, YearData>();
 
       const overheadSubTypes = BDR_OVERHEAD_ROWS
@@ -120,12 +125,23 @@ export function useBdr(yearFrom: number, yearTo: number, projectId: string | nul
           }
         }
 
+        // Расчёт ежемесячного плана ОФЗ
+        const annualOfz = fixedPlans[yr] || 0;
+        let fixedExpensesFactMonthly = annualOfz / 12;
+
+        // Для проекта — доля от общего выполнения
+        if (pid && annualOfz > 0) {
+          const share = await fixedPlanService.getProjectExecutionShare(yr, pid);
+          fixedExpensesFactMonthly = (annualOfz / 12) * share;
+        }
+
         newYearData.set(yr, {
           planMap: pMap,
           factMap: fMap,
           subTotals: subTotals,
           smrTotals: smr.withoutVat,
           actualTotals: act.withoutVat,
+          fixedExpensesFactMonthly,
         });
       }
 
@@ -145,7 +161,7 @@ export function useBdr(yearFrom: number, yearTo: number, projectId: string | nul
 
   const buildRowsForYear = useCallback(
     (yd: YearData, yearCumBefore: { plan: number; fact: number }): BdrTableRow[] => {
-      const { planMap, factMap, subTotals: ySub, smrTotals: ySmr, actualTotals: yAct } = yd;
+      const { planMap, factMap, subTotals: ySub, smrTotals: ySmr, actualTotals: yAct, fixedExpensesFactMonthly } = yd;
 
       const getVal = (code: string, month: number, type: 'plan' | 'fact'): number => {
         const map = type === 'plan' ? planMap : factMap;
@@ -219,6 +235,7 @@ export function useBdr(yearFrom: number, yearTo: number, projectId: string | nul
           }
           case 'fixed_expenses':
             if (type === 'plan') return calcMonthVal('revenue_smr', month, 'plan') * 0.2;
+            if (fixedExpensesFactMonthly) return fixedExpensesFactMonthly;
             if (ySub['fixed_expenses']) return ySub['fixed_expenses']?.[month] || 0;
             return getVal('fixed_expenses', month, 'fact');
           case 'operating_profit':

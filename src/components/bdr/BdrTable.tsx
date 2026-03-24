@@ -16,9 +16,10 @@ interface IProps {
   onUpdatePlan?: (rowCode: string, month: number, amount: number) => void;
   onUpdateFact?: (rowCode: string, month: number, amount: number) => void;
   onOpenSub: (subType: BdrSubType) => void;
+  onOpenFixedPlan?: () => void;
 }
 
-export const BdrTable = ({ rows, yearRows, yearMonthSlots, overheadExpanded, costExpanded, onToggleOverhead, onToggleCost, onUpdatePlan, onUpdateFact, onOpenSub }: IProps) => {
+export const BdrTable = ({ rows, yearRows, yearMonthSlots, overheadExpanded, costExpanded, onToggleOverhead, onToggleCost, onUpdatePlan, onUpdateFact, onOpenSub, onOpenFixedPlan }: IProps) => {
   const isMultiYear = yearMonthSlots ? yearMonthSlots.length > 12 : false;
 
   const dataSource = useMemo((): BdrTableRow[] => {
@@ -105,6 +106,27 @@ export const BdrTable = ({ rows, yearRows, yearMonthSlots, overheadExpanded, cos
         }
 
         if (record.isClickable && record.subType) {
+          // ОФЗ: две ссылки — на факт (sub modal) и план (годовая сумма)
+          if (record.rowCode === 'fixed_expenses' && onOpenFixedPlan) {
+            return (
+              <span>
+                <span
+                  className="bdr-clickable-name"
+                  onClick={() => onOpenSub(record.subType!)}
+                >
+                  {record.name}
+                </span>
+                {' '}
+                <span
+                  className="bdr-clickable-name"
+                  style={{ fontSize: 11, color: '#1677ff' }}
+                  onClick={onOpenFixedPlan}
+                >
+                  [годовой факт]
+                </span>
+              </span>
+            );
+          }
           const clsList = ['bdr-clickable-name'];
           if (record.isOverheadItem) clsList.push('bdr-overhead-indent');
           else if (record.isCostChild) clsList.push('bdr-cost-indent');
@@ -139,7 +161,7 @@ export const BdrTable = ({ rows, yearRows, yearMonthSlots, overheadExpanded, cos
     const totalCols = buildBdrTotalColumns();
 
     return [nameCol, ...monthCols, ...totalCols];
-  }, [overheadExpanded, costExpanded, onToggleOverhead, onToggleCost, onUpdatePlan, onUpdateFact, onOpenSub, isMultiYear, yearMonthSlots]);
+  }, [overheadExpanded, costExpanded, onToggleOverhead, onToggleCost, onUpdatePlan, onUpdateFact, onOpenSub, onOpenFixedPlan, isMultiYear, yearMonthSlots]);
 
   const rowClassName = (record: BdrTableRow) => {
     const classes: string[] = [];

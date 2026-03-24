@@ -4,6 +4,7 @@ import { useBdr } from '../../hooks/useBdr';
 import { BdrToolbar } from './BdrToolbar';
 import { BdrTable } from './BdrTable';
 import { BdrSubModal } from './sub/BdrSubModal';
+import { BdrFixedExpensesPlanModal } from './BdrFixedExpensesPlanModal';
 import type { Project } from '../../types/projects';
 
 const currentYear = new Date().getFullYear();
@@ -12,6 +13,7 @@ export const BdrPage = () => {
   const [yearFrom, setYearFrom] = useState(currentYear);
   const [yearTo, setYearTo] = useState(currentYear);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
+  const [fixedPlanModalOpen, setFixedPlanModalOpen] = useState(false);
   const {
     rows,
     yearRows,
@@ -99,6 +101,7 @@ export const BdrPage = () => {
           onUpdatePlan={isReadOnly ? undefined : (code, month, amount) => updateEntry(code, month, amount, 'plan')}
           onUpdateFact={isReadOnly ? undefined : (code, month, amount) => updateEntry(code, month, amount, 'fact')}
           onOpenSub={setOpenSubType}
+          onOpenFixedPlan={() => setFixedPlanModalOpen(true)}
         />
       </Card>
       {openSubType && (
@@ -110,6 +113,12 @@ export const BdrPage = () => {
           onClose={handleSubClose}
         />
       )}
+      <BdrFixedExpensesPlanModal
+        year={yearFrom}
+        open={fixedPlanModalOpen}
+        onClose={() => setFixedPlanModalOpen(false)}
+        onSaved={reload}
+      />
     </>
   );
 };
