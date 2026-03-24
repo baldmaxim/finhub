@@ -6,6 +6,7 @@ import * as bddsService from '../services/bddsService';
 import * as bddsIncomeService from '../services/bddsIncomeService';
 import * as receiptService from '../services/bddsReceiptService';
 import * as projectsService from '../services/projectsService';
+import * as fixedPlanService from '../services/bdrFixedExpensesPlanService';
 import { MONTHS, SECTION_NAMES, SECTION_ORDER } from '../utils/constants';
 import { OVERHEAD_CODES } from '../utils/bdrConstants';
 import { calculateNetCashFlow } from '../utils/calculations';
@@ -31,6 +32,7 @@ interface IYearBdrData {
   actualTotals: { ks: MonthValues; fact: MonthValues };
   actualTotalsWithVat: { ks: MonthValues; fact: MonthValues };
   subTotals: Record<string, MonthValues>;
+  fixedExpensesFactMonthly: number;
 }
 
 interface IYearBddsData {
@@ -96,8 +98,12 @@ function calcBdr(code: string, month: number, type: 'plan' | 'fact', d: IYearBdr
       return COST_CODES.reduce((sum, c) => sum + calcBdr(c, month, type, d), 0);
     case 'marginal_profit':
       return calcBdr('revenue', month, type, d) - calcBdr('cost_total', month, type, d);
+    case 'fixed_expenses':
+      if (type === 'plan') return calcBdr('revenue_smr', month, 'plan', d) * 0.2;
+      if (d.fixedExpensesFactMonthly) return d.fixedExpensesFactMonthly;
+      return v('fixed_expenses', month);
     case 'operating_profit':
-      return calcBdr('marginal_profit', month, type, d) - v('fixed_expenses', month);
+      return calcBdr('marginal_profit', month, type, d) - calcBdr('fixed_expenses', month, type, d);
     case 'operating_profit_pct': {
       const rev = calcBdr('revenue', month, type, d);
       return rev ? (calcBdr('operating_profit', month, type, d) / rev) * 100 : 0;
@@ -131,6 +137,8 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
       for (let y = yearFrom; y <= yearTo; y++) years.push(y);
       const pid = projectId || undefined;
 
+      const fixedPlans = await fixedPlanService.getFixedExpensesPlans(yearFrom, yearTo);
+
       const [bdrResults, bddsResults, allProjects] = await Promise.all([
         Promise.all(years.map(async (year): Promise<IYearBdrData> => {
           const [planEntries, factEntries, smrResult, mat, lab, sub, des, ren, ovl, ovhMap, actResult] = await Promise.all([
@@ -146,6 +154,14 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
             bdrSubService.getMultiSubTotalsByMonth(OVERHEAD_SUB_TYPES, year, pid),
             actualExecutionService.getAggregatedTotals(year, pid),
           ]);
+
+          const annualOfz = fixedPlans[year] || 0;
+          let fixedExpensesFactMonthly = annualOfz / 12;
+          if (pid && annualOfz > 0) {
+            const share = await fixedPlanService.getProjectExecutionShare(year, pid);
+            fixedExpensesFactMonthly = (annualOfz / 12) * share;
+          }
+
           return {
             year,
             planMap: buildEntryMap(planEntries, 'row_code'),
@@ -159,6 +175,7 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
               cost_design: des, cost_rental: ren, overhead_01: ovl,
               ...ovhMap,
             },
+            fixedExpensesFactMonthly,
           };
         })),
         Promise.all(years.map(async (year): Promise<IYearBddsData> => {
@@ -240,7 +257,7 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
         marginalFact += calcBdr('marginal_profit', m.key, 'fact', d);
         operatingFact += calcBdr('operating_profit', m.key, 'fact', d);
         netProfitFact += calcBdr('net_profit', m.key, 'fact', d);
-        const fixedMonth = getVal(d.factMap, 'fixed_expenses', m.key);
+        const fixedMonth = calcBdr('fixed_expenses', m.key, 'fact', d);
         fixedFact += fixedMonth;
         otherFact += getVal(d.factMap, 'other_income_expense', m.key);
 
