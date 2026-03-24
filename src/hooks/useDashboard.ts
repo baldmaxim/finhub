@@ -133,11 +133,10 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
 
       const [bdrResults, bddsResults, allProjects] = await Promise.all([
         Promise.all(years.map(async (year): Promise<IYearBdrData> => {
-          const [planEntries, factEntries, smr, smrVat, mat, lab, sub, des, ren, ovl, ovhMap, act, actVat] = await Promise.all([
+          const [planEntries, factEntries, smrResult, mat, lab, sub, des, ren, ovl, ovhMap, actResult] = await Promise.all([
             bdrService.getEntries(year, 'plan', pid),
             bdrService.getEntries(year, 'fact', pid),
             bdrService.getSmrTotalsByMonth(year, pid),
-            bdrService.getSmrTotalsByMonthWithVat(year, pid),
             bdrSubService.getSubTotalsByMonth('materials', year, pid),
             bdrSubService.getSubTotalsByMonth('labor', year, pid),
             bdrSubService.getSubTotalsByMonth('subcontract', year, pid),
@@ -146,16 +145,15 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
             bdrSubService.getSubTotalsByMonth('overhead_labor', year, pid),
             bdrSubService.getMultiSubTotalsByMonth(OVERHEAD_SUB_TYPES, year, pid),
             actualExecutionService.getAggregatedTotals(year, pid),
-            actualExecutionService.getAggregatedTotalsWithVat(year, pid),
           ]);
           return {
             year,
             planMap: buildEntryMap(planEntries, 'row_code'),
             factMap: buildEntryMap(factEntries, 'row_code'),
-            smrTotals: smr,
-            smrTotalsWithVat: smrVat,
-            actualTotals: act,
-            actualTotalsWithVat: actVat,
+            smrTotals: smrResult.withoutVat,
+            smrTotalsWithVat: smrResult.withVat,
+            actualTotals: actResult.withoutVat,
+            actualTotalsWithVat: actResult.withVat,
             subTotals: {
               cost_materials: mat, cost_labor: lab, cost_subcontract: sub,
               cost_design: des, cost_rental: ren, overhead_01: ovl,

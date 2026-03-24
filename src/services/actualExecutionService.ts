@@ -63,7 +63,7 @@ export async function deleteEntry(id: string): Promise<void> {
   if (error) throw error;
 }
 
-export async function getAggregatedTotals(year: number, projectId?: string): Promise<ActualExecutionTotals> {
+export async function getAggregatedTotals(year: number, projectId?: string): Promise<{ withoutVat: ActualExecutionTotals; withVat: ActualExecutionTotals }> {
   let query = supabase
     .from('actual_execution_entries')
     .select('month_key, ks_amount, fact_amount')
@@ -82,38 +82,21 @@ export async function getAggregatedTotals(year: number, projectId?: string): Pro
 
   const ks: Record<number, number> = {};
   const fact: Record<number, number> = {};
+  const ksVat: Record<number, number> = {};
+  const factVat: Record<number, number> = {};
 
   for (const e of data) {
     const month = parseInt(e.month_key.split('-')[1], 10);
-    ks[month] = (ks[month] || 0) + Number(e.ks_amount) / vatDivisor;
-    fact[month] = (fact[month] || 0) + Number(e.fact_amount) / vatDivisor;
+    const ksAmt = Number(e.ks_amount);
+    const factAmt = Number(e.fact_amount);
+    ks[month] = (ks[month] || 0) + ksAmt / vatDivisor;
+    fact[month] = (fact[month] || 0) + factAmt / vatDivisor;
+    ksVat[month] = (ksVat[month] || 0) + ksAmt;
+    factVat[month] = (factVat[month] || 0) + factAmt;
   }
 
-  return { ks, fact };
-}
-
-export async function getAggregatedTotalsWithVat(year: number, projectId?: string): Promise<ActualExecutionTotals> {
-  let query = supabase
-    .from('actual_execution_entries')
-    .select('month_key, ks_amount, fact_amount')
-    .like('month_key', `${year}-%`);
-
-  if (projectId) {
-    query = query.eq('project_id', projectId);
-  }
-
-  const { data, error } = await query;
-
-  if (error) throw error;
-
-  const ks: Record<number, number> = {};
-  const fact: Record<number, number> = {};
-
-  for (const e of data) {
-    const month = parseInt(e.month_key.split('-')[1], 10);
-    ks[month] = (ks[month] || 0) + Number(e.ks_amount);
-    fact[month] = (fact[month] || 0) + Number(e.fact_amount);
-  }
-
-  return { ks, fact };
+  return {
+    withoutVat: { ks, fact },
+    withVat: { ks: ksVat, fact: factVat },
+  };
 }

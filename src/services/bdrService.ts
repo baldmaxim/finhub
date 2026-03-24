@@ -124,7 +124,7 @@ export async function getRevenueCumulativeBefore(
   return { plan, fact };
 }
 
-export async function getSmrTotalsByMonth(year: number, projectId?: string): Promise<Record<number, number>> {
+export async function getSmrTotalsByMonth(year: number, projectId?: string): Promise<{ withoutVat: Record<number, number>; withVat: Record<number, number> }> {
   let query = supabase
     .from('bdds_income_entries')
     .select('work_type_code, month_key, amount')
@@ -138,32 +138,13 @@ export async function getSmrTotalsByMonth(year: number, projectId?: string): Pro
   const { data, error } = await query;
   if (error) throw error;
 
-  const totals: Record<number, number> = {};
+  const withoutVat: Record<number, number> = {};
+  const withVat: Record<number, number> = {};
   for (const e of data) {
     const month = parseInt(e.month_key.split('-')[1], 10);
-    totals[month] = (totals[month] || 0) + removeVat(Number(e.amount), year);
+    const amount = Number(e.amount);
+    withoutVat[month] = (withoutVat[month] || 0) + removeVat(amount, year);
+    withVat[month] = (withVat[month] || 0) + amount;
   }
-  return totals;
-}
-
-export async function getSmrTotalsByMonthWithVat(year: number, projectId?: string): Promise<Record<number, number>> {
-  let query = supabase
-    .from('bdds_income_entries')
-    .select('work_type_code, month_key, amount')
-    .like('month_key', `${year}-%`)
-    .in('work_type_code', SMR_CODES);
-
-  if (projectId) {
-    query = query.eq('project_id', projectId);
-  }
-
-  const { data, error } = await query;
-  if (error) throw error;
-
-  const totals: Record<number, number> = {};
-  for (const e of data) {
-    const month = parseInt(e.month_key.split('-')[1], 10);
-    totals[month] = (totals[month] || 0) + Number(e.amount);
-  }
-  return totals;
+  return { withoutVat, withVat };
 }

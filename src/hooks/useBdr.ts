@@ -124,8 +124,8 @@ export function useBdr(yearFrom: number, yearTo: number, projectId: string | nul
           planMap: pMap,
           factMap: fMap,
           subTotals: subTotals,
-          smrTotals: smr,
-          actualTotals: act,
+          smrTotals: smr.withoutVat,
+          actualTotals: act.withoutVat,
         });
       }
 
