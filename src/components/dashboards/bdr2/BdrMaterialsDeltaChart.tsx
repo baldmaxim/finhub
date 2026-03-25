@@ -1,8 +1,9 @@
-import type { FC } from 'react';
+import { type FC, useRef } from 'react';
 import { Card, Tooltip } from 'antd';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { DualAxes } from '@ant-design/charts';
 import type { IMaterialsDeltaData } from '../../../types/dashboard';
+import { ShareChartButton } from '../../common/ShareChartButton';
 
 interface IProps {
   data: IMaterialsDeltaData;
@@ -18,6 +19,7 @@ const HELP_TEXT = `Сравнение оплаченных и списанных
 Отрицательная дельта = списание идёт быстрее оплат (кредиторская задолженность).`;
 
 export const BdrMaterialsDeltaChart: FC<IProps> = ({ data }) => {
+  const chartRef = useRef<HTMLDivElement>(null);
   const valueFormatter = (v: number) =>
     v.toLocaleString('ru-RU', { maximumFractionDigits: 0 }) + ' ₽';
 
@@ -100,8 +102,10 @@ export const BdrMaterialsDeltaChart: FC<IProps> = ({ data }) => {
   );
 
   return (
-    <Card title={title} size="small" className="dashboard-chart-card">
-      <DualAxes {...config} height={350} />
-    </Card>
+    <div ref={chartRef}>
+      <Card title={title} extra={<ShareChartButton chartRef={chartRef} title="Материалы оплата vs списание" />} size="small" className="dashboard-chart-card">
+        <DualAxes {...config} height={350} />
+      </Card>
+    </div>
   );
 };

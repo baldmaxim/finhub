@@ -1,8 +1,9 @@
-import type { FC } from 'react';
+import { type FC, useRef } from 'react';
 import { Card, Tooltip } from 'antd';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { Scatter } from '@ant-design/charts';
 import type { IBubbleDataPoint } from '../../../types/dashboard';
+import { ShareChartButton } from '../../common/ShareChartButton';
 
 interface IProps {
   data: IBubbleDataPoint[];
@@ -19,6 +20,7 @@ const HELP_TEXT = `Как читать этот график для принят
 Размер пузырька (Объём НЗП): Это ваши «замороженные» деньги. Чем больше круг, тем больше работ выполнено, но не принято заказчиком (не подписаны КС-2).`;
 
 export const BdrBubbleChart: FC<IProps> = ({ data }) => {
+  const chartRef = useRef<HTMLDivElement>(null);
   const config = {
     data,
     xField: 'revenue',
@@ -79,8 +81,10 @@ export const BdrBubbleChart: FC<IProps> = ({ data }) => {
   );
 
   return (
-    <Card title={title} size="small" className="dashboard-chart-card">
-      <Scatter {...config} height={420} />
-    </Card>
+    <div ref={chartRef}>
+      <Card title={title} extra={<ShareChartButton chartRef={chartRef} title="Матрица маржинальности" />} size="small" className="dashboard-chart-card">
+        <Scatter {...config} height={420} />
+      </Card>
+    </div>
   );
 };

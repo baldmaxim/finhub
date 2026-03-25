@@ -1,13 +1,15 @@
-import type { FC } from 'react';
+import { type FC, useRef } from 'react';
 import { Card } from 'antd';
 import { DualAxes } from '@ant-design/charts';
 import type { IBddsDashboardData, IIncomeByProjectPoint, IMonthDataPoint } from '../../../types/dashboard';
+import { ShareChartButton } from '../../common/ShareChartButton';
 
 interface IProps {
   data: IBddsDashboardData;
 }
 
 export const BddsIncomeComboChart: FC<IProps> = ({ data }) => {
+  const chartRef = useRef<HTMLDivElement>(null);
   const hasProjectData = data.incomeByProject.length > 0;
 
   if (!hasProjectData) return null;
@@ -81,12 +83,15 @@ export const BddsIncomeComboChart: FC<IProps> = ({ data }) => {
   };
 
   return (
-    <Card
-      title="Поступления по проектам: факт (столбцы) + план (линия)"
-      size="small"
-      className="dashboard-chart-card"
-    >
-      <DualAxes {...config} height={350} />
-    </Card>
+    <div ref={chartRef}>
+      <Card
+        title="Поступления по проектам: факт (столбцы) + план (линия)"
+        extra={<ShareChartButton chartRef={chartRef} title="Поступления по проектам" />}
+        size="small"
+        className="dashboard-chart-card"
+      >
+        <DualAxes {...config} height={350} />
+      </Card>
+    </div>
   );
 };

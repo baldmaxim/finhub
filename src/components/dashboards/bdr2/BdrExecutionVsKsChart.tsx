@@ -1,8 +1,9 @@
-import type { FC } from 'react';
+import { type FC, useRef } from 'react';
 import { Card, Tooltip } from 'antd';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { Area } from '@ant-design/charts';
 import type { IExecutionVsKsPoint } from '../../../types/dashboard';
+import { ShareChartButton } from '../../common/ShareChartButton';
 
 interface IProps {
   data: IExecutionVsKsPoint[];
@@ -23,6 +24,7 @@ const HELP_TEXT = `Как читать этот график:
 • Пересекающиеся линии («Ножницы»): Сигнал нестабильности. Проблемы с ПТО (не успевает готовить исполнительную документацию) или заказчик затягивает приёмку.`;
 
 export const BdrExecutionVsKsChart: FC<IProps> = ({ data }) => {
+  const chartRef = useRef<HTMLDivElement>(null);
   const config = {
     data,
     xField: 'month',
@@ -72,8 +74,10 @@ export const BdrExecutionVsKsChart: FC<IProps> = ({ data }) => {
   );
 
   return (
-    <Card title={title} size="small" className="dashboard-chart-card">
-      <Area {...config} height={380} />
-    </Card>
+    <div ref={chartRef}>
+      <Card title={title} extra={<ShareChartButton chartRef={chartRef} title="Выполнение vs Актирование" />} size="small" className="dashboard-chart-card">
+        <Area {...config} height={380} />
+      </Card>
+    </div>
   );
 };

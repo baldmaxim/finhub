@@ -1,8 +1,9 @@
-import { type FC, useMemo, useState } from 'react';
+import { type FC, useMemo, useRef, useState } from 'react';
 import { Card, Tooltip, InputNumber, Space } from 'antd';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { DualAxes } from '@ant-design/charts';
 import type { IBdrDashboardData } from '../../../types/dashboard';
+import { ShareChartButton } from '../../common/ShareChartButton';
 
 interface IProps {
   data: IBdrDashboardData;
@@ -38,6 +39,7 @@ function linearRegression(values: number[]): { slope: number; intercept: number 
 }
 
 export const BdrMarginTrendChart: FC<IProps> = ({ data }) => {
+  const chartRef = useRef<HTMLDivElement>(null);
   const [benchmark, setBenchmark] = useState(15);
   const points = data.marginTrend;
 
@@ -216,6 +218,7 @@ export const BdrMarginTrendChart: FC<IProps> = ({ data }) => {
         parser={(v) => Number(v?.replace('%', '') || 0)}
         style={{ width: 72 }}
       />
+      <ShareChartButton chartRef={chartRef} title="Маржинальность и объёмы" />
     </Space>
   );
 
@@ -232,8 +235,10 @@ export const BdrMarginTrendChart: FC<IProps> = ({ data }) => {
   );
 
   return (
-    <Card title={title} extra={titleExtra} size="small" className="dashboard-chart-card">
-      <DualAxes {...config} height={380} />
-    </Card>
+    <div ref={chartRef}>
+      <Card title={title} extra={titleExtra} size="small" className="dashboard-chart-card">
+        <DualAxes {...config} height={380} />
+      </Card>
+    </div>
   );
 };

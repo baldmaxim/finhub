@@ -1,13 +1,15 @@
-import type { FC } from 'react';
+import { type FC, useRef } from 'react';
 import { Card } from 'antd';
 import { Area } from '@ant-design/charts';
 import type { IBddsDashboardData } from '../../../types/dashboard';
+import { ShareChartButton } from '../../common/ShareChartButton';
 
 interface IProps {
   data: IBddsDashboardData;
 }
 
 export const BddsNcfChart: FC<IProps> = ({ data }) => {
+  const chartRef = useRef<HTMLDivElement>(null);
   const config = {
     data: data.ncfBySection,
     xField: 'month',
@@ -36,8 +38,10 @@ export const BddsNcfChart: FC<IProps> = ({ data }) => {
   };
 
   return (
-    <Card title="ЧДП по секциям" size="small" className="dashboard-chart-card">
-      <Area {...config} height={300} />
-    </Card>
+    <div ref={chartRef}>
+      <Card title="ЧДП по секциям" extra={<ShareChartButton chartRef={chartRef} title="ЧДП по секциям" />} size="small" className="dashboard-chart-card">
+        <Area {...config} height={300} />
+      </Card>
+    </div>
   );
 };

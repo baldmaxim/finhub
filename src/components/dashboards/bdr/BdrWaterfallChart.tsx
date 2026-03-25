@@ -1,9 +1,9 @@
-import type { FC } from 'react';
-import { useMemo } from 'react';
+import { type FC, useMemo, useRef } from 'react';
 import { Card, Tooltip } from 'antd';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { Column } from '@ant-design/charts';
 import type { IBdrDashboardData } from '../../../types/dashboard';
+import { ShareChartButton } from '../../common/ShareChartButton';
 
 interface IProps {
   data: IBdrDashboardData;
@@ -16,6 +16,7 @@ const HELP_TEXT = `График состоит из столбиков, кото
 • Итоговый столбец (фундамент): Чистая прибыль, которая осталась «в сухом остатке».`;
 
 export const BdrWaterfallChart: FC<IProps> = ({ data }) => {
+  const chartRef = useRef<HTMLDivElement>(null);
   const chartData = useMemo(() => {
     const items = data.waterfall;
     const result: Array<{ name: string; value: [number, number]; isTotal: boolean }> = [];
@@ -81,8 +82,10 @@ export const BdrWaterfallChart: FC<IProps> = ({ data }) => {
   );
 
   return (
-    <Card title={title} size="small" className="dashboard-chart-card">
-      <Column {...config} height={300} />
-    </Card>
+    <div ref={chartRef}>
+      <Card title={title} extra={<ShareChartButton chartRef={chartRef} title="Водопад" />} size="small" className="dashboard-chart-card">
+        <Column {...config} height={300} />
+      </Card>
+    </div>
   );
 };

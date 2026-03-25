@@ -1,8 +1,9 @@
-import { type FC, useMemo, useState } from 'react';
+import { type FC, useMemo, useRef, useState } from 'react';
 import { Card, Radio, Space, Tooltip } from 'antd';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { Mix } from '@ant-design/charts';
 import type { IBdrDashboardData } from '../../../types/dashboard';
+import { ShareChartButton } from '../../common/ShareChartButton';
 
 type ChartMode = 'monthly' | 'cumulative';
 type VatMode = 'without' | 'with';
@@ -25,6 +26,7 @@ const HELP_TEXT = `На графике вы всегда увидите две �
 Проведите горизонтальную линию от текущей точки Факта до пересечения с линией Плана. Расстояние по оси X покажет реальный срок задержки проекта. Например, текущий объём работ должен был быть выполнен 2 месяца назад — это математический прогноз даты окончания стройки.`;
 
 export const BdrScurveChart: FC<IProps> = ({ data }) => {
+  const chartRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<ChartMode>('cumulative');
   const [vatMode, setVatMode] = useState<VatMode>('without');
 
@@ -154,6 +156,7 @@ export const BdrScurveChart: FC<IProps> = ({ data }) => {
         <Radio.Button value="monthly">Помесячно</Radio.Button>
         <Radio.Button value="cumulative">Нарастающий итог</Radio.Button>
       </Radio.Group>
+      <ShareChartButton chartRef={chartRef} title="S-кривая план vs факт" />
     </Space>
   );
 
@@ -167,12 +170,14 @@ export const BdrScurveChart: FC<IProps> = ({ data }) => {
   );
 
   return (
-    <Card title={title} extra={titleExtra} size="small" className="dashboard-chart-card">
-      {mode === 'monthly' ? (
-        <Mix {...monthlyConfig} height={300} />
-      ) : (
-        <Mix {...cumulativeConfig} height={300} />
-      )}
-    </Card>
+    <div ref={chartRef}>
+      <Card title={title} extra={titleExtra} size="small" className="dashboard-chart-card">
+        {mode === 'monthly' ? (
+          <Mix {...monthlyConfig} height={300} />
+        ) : (
+          <Mix {...cumulativeConfig} height={300} />
+        )}
+      </Card>
+    </div>
   );
 };

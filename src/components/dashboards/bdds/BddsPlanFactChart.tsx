@@ -1,7 +1,8 @@
-import { FC, useMemo, useState } from 'react';
-import { Card, Radio } from 'antd';
+import { type FC, useMemo, useRef, useState } from 'react';
+import { Card, Radio, Space } from 'antd';
 import { Mix } from '@ant-design/charts';
 import type { IBddsDashboardData } from '../../../types/dashboard';
+import { ShareChartButton } from '../../common/ShareChartButton';
 
 type ChartMode = 'monthly' | 'cumulative';
 
@@ -10,6 +11,7 @@ interface IProps {
 }
 
 export const BddsPlanFactChart: FC<IProps> = ({ data }) => {
+  const chartRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<ChartMode>('monthly');
 
   const { redAreaData, greenAreaData, lineData, cumulativeData, cumRedAreaData, cumGreenAreaData } = useMemo(() => {
@@ -187,25 +189,30 @@ export const BddsPlanFactChart: FC<IProps> = ({ data }) => {
   };
 
   const titleExtra = (
-    <Radio.Group
-      value={mode}
-      onChange={e => setMode(e.target.value)}
-      size="small"
-      optionType="button"
-      buttonStyle="solid"
-    >
-      <Radio.Button value="monthly">Помесячно</Radio.Button>
-      <Radio.Button value="cumulative">Нарастающий итог</Radio.Button>
-    </Radio.Group>
+    <Space size="small">
+      <Radio.Group
+        value={mode}
+        onChange={e => setMode(e.target.value)}
+        size="small"
+        optionType="button"
+        buttonStyle="solid"
+      >
+        <Radio.Button value="monthly">Помесячно</Radio.Button>
+        <Radio.Button value="cumulative">Нарастающий итог</Radio.Button>
+      </Radio.Group>
+      <ShareChartButton chartRef={chartRef} title="Поступления план vs факт" />
+    </Space>
   );
 
   return (
-    <Card title="Поступления: план vs факт" extra={titleExtra} size="small" className="dashboard-chart-card">
-      {mode === 'monthly' ? (
-        <Mix {...monthlyConfig} height={300} />
-      ) : (
-        <Mix {...cumulativeConfig} height={300} />
-      )}
-    </Card>
+    <div ref={chartRef}>
+      <Card title="Поступления: план vs факт" extra={titleExtra} size="small" className="dashboard-chart-card">
+        {mode === 'monthly' ? (
+          <Mix {...monthlyConfig} height={300} />
+        ) : (
+          <Mix {...cumulativeConfig} height={300} />
+        )}
+      </Card>
+    </div>
   );
 };

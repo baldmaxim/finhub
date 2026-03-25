@@ -1,8 +1,9 @@
-import type { FC } from 'react';
+import { type FC, useRef } from 'react';
 import { Card, Empty } from 'antd';
 import { Column } from '@ant-design/charts';
 import type { GuaranteeRow } from '../../types/guarantee';
 import { MONTHS } from '../../utils/constants';
+import { ShareChartButton } from '../common/ShareChartButton';
 
 interface IProps {
   rows: GuaranteeRow[];
@@ -17,6 +18,7 @@ interface ChartDataItem {
 }
 
 export const GuaranteeChart: FC<IProps> = ({ rows, selectedYear }) => {
+  const chartRef = useRef<HTMLDivElement>(null);
   const chartData: ChartDataItem[] = [];
 
   for (const row of rows) {
@@ -93,8 +95,10 @@ export const GuaranteeChart: FC<IProps> = ({ rows, selectedYear }) => {
   };
 
   return (
-    <Card title={`Возврат ГУ — ${selectedYear}`} size="small" className="guarantee-chart-card">
-      <Column {...config} height={350} />
-    </Card>
+    <div ref={chartRef}>
+      <Card title={`Возврат ГУ — ${selectedYear}`} extra={<ShareChartButton chartRef={chartRef} title={`Возврат ГУ — ${selectedYear}`} />} size="small" className="guarantee-chart-card">
+        <Column {...config} height={350} />
+      </Card>
+    </div>
   );
 };

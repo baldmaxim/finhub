@@ -1,8 +1,9 @@
-import type { FC } from 'react';
+import { type FC, useRef } from 'react';
 import { Card, Tooltip } from 'antd';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { Column } from '@ant-design/charts';
 import type { IBdrDashboardData } from '../../../types/dashboard';
+import { ShareChartButton } from '../../common/ShareChartButton';
 
 interface IProps {
   data: IBdrDashboardData;
@@ -29,6 +30,7 @@ const HELP_TEXT = `1. Состав «пирога» (основные доли)
 • Доля Субподряда растёт к концу проекта: Наняты «авральные» бригады дороже плана.`;
 
 export const BdrCostStructureChart: FC<IProps> = ({ data }) => {
+  const chartRef = useRef<HTMLDivElement>(null);
   const config = {
     data: data.costStructure,
     xField: 'month',
@@ -63,8 +65,10 @@ export const BdrCostStructureChart: FC<IProps> = ({ data }) => {
   );
 
   return (
-    <Card title={title} size="small" className="dashboard-chart-card">
-      <Column {...config} height={300} />
-    </Card>
+    <div ref={chartRef}>
+      <Card title={title} extra={<ShareChartButton chartRef={chartRef} title="Структура себестоимости" />} size="small" className="dashboard-chart-card">
+        <Column {...config} height={300} />
+      </Card>
+    </div>
   );
 };

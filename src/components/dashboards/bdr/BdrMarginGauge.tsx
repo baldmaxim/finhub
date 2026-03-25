@@ -1,7 +1,8 @@
-import type { FC } from 'react';
+import { type FC, useRef } from 'react';
 import { Card, Tooltip, Progress } from 'antd';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import type { IBdrDashboardData } from '../../../types/dashboard';
+import { ShareChartButton } from '../../common/ShareChartButton';
 
 interface IProps {
   data: IBdrDashboardData;
@@ -32,6 +33,7 @@ function getColor(percent: number): string {
 }
 
 export const BdrMarginGauge: FC<IProps> = ({ data }) => {
+  const chartRef = useRef<HTMLDivElement>(null);
   const pct = data.marginPercent;
   const clampedPct = Math.max(0, Math.min(pct, 100));
   const color = getColor(pct);
@@ -46,8 +48,9 @@ export const BdrMarginGauge: FC<IProps> = ({ data }) => {
   );
 
   return (
-    <Card title={title} size="small" className="dashboard-chart-card">
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 300 }}>
+    <div ref={chartRef}>
+      <Card title={title} extra={<ShareChartButton chartRef={chartRef} title="Маржинальность" />} size="small" className="dashboard-chart-card">
+        <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 300 }}>
         <Progress
           type="dashboard"
           percent={clampedPct}
@@ -60,7 +63,8 @@ export const BdrMarginGauge: FC<IProps> = ({ data }) => {
             </div>
           )}
         />
-      </div>
-    </Card>
+        </div>
+      </Card>
+    </div>
   );
 };
