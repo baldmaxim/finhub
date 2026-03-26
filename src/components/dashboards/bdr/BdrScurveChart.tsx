@@ -10,6 +10,10 @@ type VatMode = 'without' | 'with';
 
 interface IProps {
   data: IBdrDashboardData;
+  hoveredMonth?: string | null;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onChartReady?: (chart: any) => void;
+  showCostLine?: boolean;
 }
 
 const HELP_TEXT = `На графике три линии: План (контрактный график), Факт (реальное выполнение) и Прогноз (экстраполяция тренда).
@@ -64,7 +68,7 @@ const resampleWeights = (source: number[], targetLen: number): number[] => {
   return result;
 };
 
-export const BdrScurveChart: FC<IProps> = ({ data }) => {
+export const BdrScurveChart: FC<IProps> = ({ data, hoveredMonth, onChartReady, showCostLine }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<ChartMode>('cumulative');
   const [vatMode, setVatMode] = useState<VatMode>('without');
@@ -209,16 +213,34 @@ export const BdrScurveChart: FC<IProps> = ({ data }) => {
     const delta = lastCumFact - planAtCurrent;
     const deltaPct = planAtCurrent ? (delta / planAtCurrent) * 100 : 0;
 
+    // Нарастающая себестоимость (обрезаем по текущий месяц)
+    const costCumMap = new Map<string, number>();
+    for (const pt of data.costCumulative) {
+      costCumMap.set(pt.month, pt.value);
+    }
+    const cumCostLine: IMonthDataPoint[] = months.slice(0, currentIdx + 1)
+      .map(m => ({ month: m, value: costCumMap.get(m) ?? 0, type: 'Себестоимость' }));
+
+    // Помесячная себестоимость
+    const monthlyCostLine: IMonthDataPoint[] = [];
+    let prevCumCost = 0;
+    for (let i = 0; i <= currentIdx; i++) {
+      const cumVal = costCumMap.get(months[i]) ?? 0;
+      monthlyCostLine.push({ month: months[i], value: cumVal - prevCumCost, type: 'Себестоимость' });
+      prevCumCost = cumVal;
+    }
+
     return {
       allMonths, months, currentMonth, currentIdx,
       lastPlanMonth, forecastEndMonth, totalPlan,
       monthlyPlanLine, monthlyFactLine, monthlyForecastLine,
       cumPlanLine, cumFactLine, cumForecastLine,
+      cumCostLine, monthlyCostLine,
       monthlyRedArea, monthlyGreenArea,
       cumRedArea, cumGreenArea,
       kpi: { planAtCurrent, factAtCurrent: lastCumFact, delta, deltaPct },
     };
-  }, [revenueByMonth, scurve]);
+  }, [revenueByMonth, scurve, data.costCumulative]);
 
   const areaBase = {
     xField: 'month',
@@ -319,12 +341,40 @@ export const BdrScurveChart: FC<IProps> = ({ data }) => {
     return html;
   };
 
+  const buildCostLineChild = (costData: IMonthDataPoint[]) => ({
+    type: 'line' as const,
+    data: costData,
+    xField: 'month',
+    yField: 'value',
+    colorField: 'type',
+    scale: {
+      y: { key: 'yShared', independent: false },
+      color: { domain: ['Себестоимость'], range: ['#fa541c'] },
+    },
+    style: { lineWidth: 2, lineDash: [8, 4] },
+    axis: false,
+    legend: false,
+    tooltip: {
+      items: [{ channel: 'y' as const, valueFormatter: formatRub }],
+    },
+  });
+
+  const buildHoverMarker = (month: string) => ({
+    type: 'lineX' as const,
+    data: [month],
+    style: { stroke: '#595959', lineDash: [2, 2], lineWidth: 1 },
+    axis: false,
+    legend: false,
+    tooltip: false,
+  });
+
   const buildConfig = (
     planLine: IMonthDataPoint[],
     factLine: IMonthDataPoint[],
     forecastLine: IMonthDataPoint[],
     redArea: Array<{ month: string; upper: number; lower: number }>,
     greenArea: Array<{ month: string; upper: number; lower: number }>,
+    costLine: IMonthDataPoint[],
   ) => ({
     children: [
       { type: 'area' as const, data: redArea, ...areaBase,
@@ -332,11 +382,13 @@ export const BdrScurveChart: FC<IProps> = ({ data }) => {
       { type: 'area' as const, data: greenArea, ...areaBase,
         style: { fill: '#52c41a', fillOpacity: 0.2, stroke: 'transparent' } },
       buildForecastChild(forecastLine),
+      ...(showCostLine && costLine.length > 0 ? [buildCostLineChild(costLine)] : []),
       buildMarkerLine(chartData.currentMonth, 'Сегодня', '#8c8c8c', 4),
       buildMarkerLine(chartData.lastPlanMonth, 'Плановое завершение', '#1890ff', 18),
       ...(chartData.forecastEndMonth
         ? [buildMarkerLine(chartData.forecastEndMonth, 'Прогнозное завершение', '#52c41a', 32)]
         : []),
+      ...(hoveredMonth ? [buildHoverMarker(hoveredMonth)] : []),
       buildLineChild([...planLine, ...factLine], ['План', 'Факт'], ['#1890ff', '#52c41a']),
     ],
     interaction: { tooltip: { shared: true, render: tooltipRender } },
@@ -344,11 +396,11 @@ export const BdrScurveChart: FC<IProps> = ({ data }) => {
 
   const monthlyConfig = buildConfig(
     chartData.monthlyPlanLine, chartData.monthlyFactLine, chartData.monthlyForecastLine,
-    chartData.monthlyRedArea, chartData.monthlyGreenArea,
+    chartData.monthlyRedArea, chartData.monthlyGreenArea, chartData.monthlyCostLine,
   );
   const cumulativeConfig = buildConfig(
     chartData.cumPlanLine, chartData.cumFactLine, chartData.cumForecastLine,
-    chartData.cumRedArea, chartData.cumGreenArea,
+    chartData.cumRedArea, chartData.cumGreenArea, chartData.cumCostLine,
   );
 
   const { kpi, forecastEndMonth } = chartData;
@@ -416,9 +468,9 @@ export const BdrScurveChart: FC<IProps> = ({ data }) => {
           onClick={() => setExpanded(prev => !prev)}
         >
           {mode === 'monthly' ? (
-            <Mix {...monthlyConfig} height={chartHeight} />
+            <Mix {...monthlyConfig} height={chartHeight} onReady={(chart: unknown) => { onChartReady?.(chart); }} />
           ) : (
-            <Mix {...cumulativeConfig} height={chartHeight} />
+            <Mix {...cumulativeConfig} height={chartHeight} onReady={(chart: unknown) => { onChartReady?.(chart); }} />
           )}
         </div>
       </Card>

@@ -239,20 +239,21 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
     const scurve: IMonthDataPoint[] = [];
     const scurveWithVat: IMonthDataPoint[] = [];
     const costStructure: ICostItem[] = [];
+    const costCumulative: IMonthDataPoint[] = [];
     const marginTrend: IMarginTrendPoint[] = [];
-    let cumPlan = 0, cumFact = 0;
+    let cumPlan = 0, cumFact = 0, cumCost = 0;
     let cumPlanVat = 0, cumFactVat = 0;
 
     // Порядок слоёв снизу вверх: Материалы -> Субподряд -> ФОТ -> Аренда -> Накладные -> Проектные
     const COST_CODES_ORDERED = ['cost_materials', 'cost_subcontract', 'cost_labor', 'cost_rental', 'cost_overhead', 'cost_design'];
 
     // Определяем последний месяц с фактическими затратами (year*100+month)
-    let lastFactIdx = 0;
+    let lastCostFactIdx = 0;
     for (const d of bdrYears) {
       for (const m of MONTHS) {
         if (!shouldShowMonth(d.year, m.key)) continue;
         const ct = calcBdr('cost_total', m.key, 'fact', d);
-        if (ct > 0) lastFactIdx = d.year * 100 + m.key;
+        if (ct > 0) lastCostFactIdx = d.year * 100 + m.key;
       }
     }
 
@@ -261,12 +262,6 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
         if (!shouldShowMonth(d.year, m.key)) continue;
         const label = monthLabel(m.key, d.year, multiYear);
         const curIdx = d.year * 100 + m.key;
-
-        // Обрезаем пустые будущие периоды после последнего факта
-        if (lastFactIdx && curIdx > lastFactIdx) {
-          const ct = calcBdr('cost_total', m.key, 'fact', d);
-          if (ct === 0) continue;
-        }
 
         const rp = calcBdr('revenue', m.key, 'plan', d);
         const rf = calcBdr('revenue', m.key, 'fact', d);
@@ -288,29 +283,35 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
         const netMargin = rf ? ((rf - ct - fixedMonth) / rf) * 100 : 0;
         marginTrend.push({ month: label, grossMargin, netMargin, revenueFact: rf });
 
-        // Вычисляем суммы для месяца
-        const monthFactTotal = COST_CODES.reduce((sum, c) => sum + calcBdr(c, m.key, 'fact', d), 0);
-        const monthPlanTotal = COST_CODES.reduce((sum, c) => sum + calcBdr(c, m.key, 'plan', d), 0);
+        // Себестоимость (гистограмма) — обрезаем пустые будущие периоды
+        const isEmptyFuture = lastCostFactIdx && curIdx > lastCostFactIdx && ct === 0;
+        if (!isEmptyFuture) {
+          const monthFactTotal = COST_CODES.reduce((sum, c) => sum + calcBdr(c, m.key, 'fact', d), 0);
+          const monthPlanTotal = COST_CODES.reduce((sum, c) => sum + calcBdr(c, m.key, 'plan', d), 0);
 
-        for (const code of COST_CODES_ORDERED) {
-          const val = calcBdr(code, m.key, 'fact', d);
-          const planVal = calcBdr(code, m.key, 'plan', d);
-          costFactByCode[code] = (costFactByCode[code] || 0) + val;
-          costStructure.push({
-            month: label,
-            category: COST_LABELS[code],
-            value: val,
-            planValue: planVal,
-            monthTotal: monthFactTotal,
-            planTotal: monthPlanTotal,
-            percent: monthFactTotal ? (val / monthFactTotal) * 100 : 0,
-          });
+          for (const code of COST_CODES_ORDERED) {
+            const val = calcBdr(code, m.key, 'fact', d);
+            const planVal = calcBdr(code, m.key, 'plan', d);
+            costFactByCode[code] = (costFactByCode[code] || 0) + val;
+            costStructure.push({
+              month: label,
+              category: COST_LABELS[code],
+              value: val,
+              planValue: planVal,
+              monthTotal: monthFactTotal,
+              planTotal: monthPlanTotal,
+              percent: monthFactTotal ? (val / monthFactTotal) * 100 : 0,
+            });
+          }
         }
 
+        // S-кривая и нарастающая себестоимость — все месяцы
         cumPlan += rp;
         cumFact += rf;
+        cumCost += ct;
         scurve.push({ month: label, value: cumPlan, type: 'План' });
         scurve.push({ month: label, value: cumFact, type: 'Факт' });
+        costCumulative.push({ month: label, value: cumCost, type: 'Себестоимость' });
 
         const rpVat = d.smrTotalsWithVat[m.key] || 0;
         const rfVat = d.actualTotalsWithVat.ks[m.key] || getVal(d.factMap, 'revenue_smr', m.key);
@@ -352,7 +353,7 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
         operatingProfit: operatingFact, operatingProfitPct: operatingPctAvg,
         netProfit: netProfitFact, costTotal: costFact, costPlanTotal,
       },
-      scurve, scurveWithVat, costStructure, waterfall, marginPercent, revenueByMonth, revenueByMonthWithVat, marginTrend,
+      scurve, scurveWithVat, costStructure, costCumulative, waterfall, marginPercent, revenueByMonth, revenueByMonthWithVat, marginTrend,
     };
   }, [bdrYears, loading, multiYear, shouldShowMonth]);
 

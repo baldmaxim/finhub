@@ -1,8 +1,7 @@
 import type { FC } from 'react';
 import { Row, Col, Empty, Spin } from 'antd';
 import { BdrKpiCards } from './BdrKpiCards';
-import { BdrScurveChart } from './BdrScurveChart';
-import { BdrCostStructureChart } from './BdrCostStructureChart';
+import { BdrCombinedAnalytics } from './BdrCombinedAnalytics';
 import { BdrMarginGauge } from './BdrMarginGauge';
 import { BdrWaterfallChart } from './BdrWaterfallChart';
 import { BdrMarginTrendChart } from './BdrMarginTrendChart';
@@ -20,16 +19,15 @@ export const BdrDashboard: FC<IProps> = ({ data, loading }) => {
   return (
     <div>
       <BdrKpiCards data={data} />
-      <BdrScurveChart data={data} />
+      <BdrCombinedAnalytics data={data} />
       <Row gutter={16}>
         <Col xs={24} lg={16}>
-          <BdrCostStructureChart data={data} />
+          <BdrMarginTrendChart data={data} />
         </Col>
         <Col xs={24} lg={8}>
           <BdrMarginGauge data={data} />
         </Col>
       </Row>
-      <BdrMarginTrendChart data={data} />
       <BdrWaterfallChart data={data} />
     </div>
   );

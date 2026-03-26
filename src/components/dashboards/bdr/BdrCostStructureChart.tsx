@@ -7,6 +7,10 @@ import { ShareChartButton } from '../../common/ShareChartButton';
 
 interface IProps {
   data: IBdrDashboardData;
+  hoveredMonth?: string | null;
+  onHoverMonth?: (month: string | null) => void;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  onChartReady?: (chart: any) => void;
 }
 
 const HELP_TEXT = `1. Состав «пирога» (основные доли)
@@ -36,7 +40,7 @@ const fmtMln = (v: number): string => (v / 1_000_000).toLocaleString('ru-RU', { 
 // Порядок слоёв (снизу вверх)
 const LAYER_ORDER = ['Материалы', 'Субподряд', 'ФОТ', 'Аренда', 'Накладные', 'Проектные'];
 
-export const BdrCostStructureChart: FC<IProps> = ({ data }) => {
+export const BdrCostStructureChart: FC<IProps> = ({ data, hoveredMonth, onChartReady }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const [viewMode, setViewMode] = useState<ViewMode>('absolute');
 
@@ -109,21 +113,23 @@ export const BdrCostStructureChart: FC<IProps> = ({ data }) => {
     interaction: {
       tooltip: { shared: false },
     },
-    // Маркеры плана (step-line) — только для абсолютного режима
-    ...(viewMode === 'absolute' ? {
-      annotations: Array.from(planByMonth.entries())
+    annotations: [
+      // Маркеры плана (step-line) — только для абсолютного режима
+      ...(viewMode === 'absolute' ? Array.from(planByMonth.entries())
         .filter(([, v]) => v > 0)
         .map(([month, planVal]) => ({
-          type: 'line',
+          type: 'line' as const,
           xField: month,
           yField: planVal,
-          style: {
-            stroke: '#000',
-            lineWidth: 2,
-            lineDash: [0, 0],
-          },
-        })),
-    } : {}),
+          style: { stroke: '#000', lineWidth: 2, lineDash: [0, 0] },
+        })) : []),
+      // Маркер синхронного hover
+      ...(hoveredMonth ? [{
+        type: 'lineX' as const,
+        xField: hoveredMonth,
+        style: { stroke: '#595959', lineDash: [2, 2], lineWidth: 1 },
+      }] : []),
+    ],
   };
 
   // Кастомный тултип через render
@@ -211,7 +217,7 @@ export const BdrCostStructureChart: FC<IProps> = ({ data }) => {
             ]}
           />
         </div>
-        <Column {...config} height={300} />
+        <Column {...config} height={300} onReady={(chart: unknown) => { onChartReady?.(chart); }} />
       </Card>
     </div>
   );

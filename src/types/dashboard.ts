@@ -30,6 +30,7 @@ export interface IBdrDashboardData {
   revenueByMonth: IMonthDataPoint[];
   revenueByMonthWithVat: IMonthDataPoint[];
   costStructure: ICostItem[];
+  costCumulative: IMonthDataPoint[];
   waterfall: IWaterfallItem[];
   marginPercent: number;
   scurve: IMonthDataPoint[];
