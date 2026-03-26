@@ -17,6 +17,7 @@ export interface ICostItem {
 export interface IWaterfallItem {
   name: string;
   value: number;
+  isTotal?: boolean;
 }
 
 export interface IMarginTrendPoint {

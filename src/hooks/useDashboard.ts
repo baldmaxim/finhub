@@ -334,12 +334,19 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
     const marginPercent = revenueFact ? (marginalFact / revenueFact) * 100 : 0;
     const costPlanTotal = costPlan;
 
+    // Прямые затраты (до валовой прибыли)
+    const DIRECT_COST_CODES = ['cost_materials', 'cost_labor', 'cost_subcontract', 'cost_design', 'cost_rental'];
+    // Косвенные затраты (после валовой прибыли)
+    const INDIRECT_COST_CODES = ['cost_overhead'];
+
     const waterfall: IWaterfallItem[] = [
-      { name: 'Выручка', value: revenueFact },
-      ...COST_CODES.map((c) => ({ name: COST_LABELS[c], value: -(costFactByCode[c] || 0) })),
+      { name: 'Выручка', value: revenueFact, isTotal: true },
+      ...DIRECT_COST_CODES.map((c) => ({ name: COST_LABELS[c], value: -(costFactByCode[c] || 0) })),
+      { name: 'Валовая прибыль', value: marginalFact, isTotal: true },
+      ...INDIRECT_COST_CODES.map((c) => ({ name: COST_LABELS[c], value: -(costFactByCode[c] || 0) })),
       { name: 'Пост. расходы', value: -fixedFact },
       { name: 'Прочие', value: otherFact },
-      { name: 'Чистая прибыль', value: netProfitFact },
+      { name: 'Чистая прибыль', value: netProfitFact, isTotal: true },
     ];
 
     const revenueByMonth: IMonthDataPoint[] = [];
