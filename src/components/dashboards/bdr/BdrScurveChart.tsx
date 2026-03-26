@@ -331,10 +331,10 @@ export const BdrScurveChart: FC<IProps> = ({ data }) => {
       { type: 'area' as const, data: greenArea, ...areaBase,
         style: { fill: '#52c41a', fillOpacity: 0.2, stroke: 'transparent' } },
       buildForecastChild(forecastLine),
-      buildMarkerLine(chartData.currentMonth, 'Сегодня', '#8c8c8c'),
+      buildMarkerLine(chartData.currentMonth, 'Сегодня', '#8c8c8c', -4),
       buildMarkerLine(chartData.lastPlanMonth, 'Плановое завершение', '#1890ff', -18),
       ...(chartData.forecastEndMonth
-        ? [buildMarkerLine(chartData.forecastEndMonth, 'Прогнозное завершение', '#52c41a')]
+        ? [buildMarkerLine(chartData.forecastEndMonth, 'Прогнозное завершение', '#52c41a', -32)]
         : []),
       buildLineChild([...planLine, ...factLine], ['План', 'Факт'], ['#1890ff', '#52c41a']),
     ],
