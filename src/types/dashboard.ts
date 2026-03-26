@@ -58,6 +58,7 @@ export interface IBubbleDataPoint {
   revenue: number;
   profitability: number;
   nzp: number;
+  grossProfit: number;
 }
 
 export interface IExecutionVsKsPoint {

@@ -1,4 +1,4 @@
-import { type FC, useRef } from 'react';
+import { type FC, useMemo, useRef } from 'react';
 import { Card, Tooltip } from 'antd';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { Scatter } from '@ant-design/charts';
@@ -11,63 +11,119 @@ interface IProps {
 
 const HELP_TEXT = `Как читать этот график для принятия решений:
 
-Положение по горизонтали (Ось X): Показывает масштаб проекта (Выручка). Чем правее объект, тем больше он влияет на общий оборот компании.
+Положение по горизонтали (Ось X): Масштаб проекта (Выручка). Чем правее — тем больше влияние на оборот.
 
-Положение по вертикали (Ось Y): Эффективность (Рентабельность в %).
-• Верхние квадранты: Зона успеха. Проекты приносят хорошую маржу.
-• Нижние квадранты: Зона риска. Здесь находятся объекты, которые работают на грани окупаемости.
+Положение по вертикали (Ось Y): Эффективность (Рентабельность %).
+• Верхние квадранты: Зона успеха — хорошая маржа.
+• Нижние квадранты: Зона риска — грань окупаемости.
 
-Размер пузырька (Объём НЗП): Это ваши «замороженные» деньги. Чем больше круг, тем больше работ выполнено, но не принято заказчиком (не подписаны КС-2).`;
+Размер пузырька: Абсолютная валовая прибыль. Чем больше круг — тем больше абсолютный вклад в прибыль.
+
+Пунктирные линии: Средняя выручка и средняя рентабельность — делят поле на 4 квадранта.`;
+
+const formatMln = (v: number): string =>
+  (v / 1_000_000).toLocaleString('ru-RU', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 export const BdrBubbleChart: FC<IProps> = ({ data }) => {
   const chartRef = useRef<HTMLDivElement>(null);
+
+  // Средние значения для reference lines
+  const { avgRevenue, avgProfitability } = useMemo(() => {
+    if (!data.length) return { avgRevenue: 0, avgProfitability: 0 };
+    const totalRevenue = data.reduce((s, d) => s + d.revenue, 0);
+    const totalProfit = data.reduce((s, d) => s + d.profitability, 0);
+    return {
+      avgRevenue: totalRevenue / data.length,
+      avgProfitability: totalProfit / data.length,
+    };
+  }, [data]);
+
   const config = {
     data,
     xField: 'revenue',
     yField: 'profitability',
-    sizeField: 'nzp',
-    colorField: 'project',
-    size: { range: [8, 60] },
+    sizeField: 'grossProfit',
+    size: { range: [12, 60] },
     shapeField: 'point',
+    style: {
+      fill: '#1890ff',
+      fillOpacity: 0.6,
+      stroke: '#1890ff',
+      strokeOpacity: 0.8,
+      lineWidth: 1,
+    },
+    scale: {
+      size: {
+        range: [12, 60],
+      },
+    },
     axis: {
       x: {
-        title: 'Выручка (₽)',
+        title: 'Выручка (млн руб.)',
+        titleFontSize: 11,
         labelFormatter: (v: number) => {
-          if (v >= 1_000_000) return (v / 1_000_000).toFixed(1) + 'М';
-          if (v >= 1_000) return (v / 1_000).toFixed(0) + 'К';
-          return String(v);
+          const mln = v / 1_000_000;
+          return mln % 1 === 0 ? mln.toFixed(0) : mln.toFixed(1);
         },
       },
       y: {
         title: 'Рентабельность (%)',
-        labelFormatter: (v: number) => v + '%',
+        titleFontSize: 11,
+        labelFormatter: (v: number) => v.toFixed(0) + '%',
       },
     },
-    tooltip: {
-      title: (d: IBubbleDataPoint) => d.project,
-      items: [
-        {
-          field: 'revenue',
-          name: 'Выручка',
-          valueFormatter: (v: number) => v.toLocaleString('ru-RU', { maximumFractionDigits: 0 }) + ' ₽',
+    // Reference lines — средняя выручка и средняя рентабельность
+    annotations: [
+      // Вертикальная линия — средняя выручка
+      {
+        type: 'lineX' as const,
+        xField: avgRevenue,
+        style: {
+          stroke: '#8c8c8c',
+          strokeOpacity: 0.5,
+          lineDash: [6, 4],
+          lineWidth: 1,
         },
-        {
-          field: 'profitability',
-          name: 'Рентабельность',
-          valueFormatter: (v: number) => v + '%',
+      },
+      // Горизонтальная линия — средняя рентабельность
+      {
+        type: 'lineY' as const,
+        yField: avgProfitability,
+        style: {
+          stroke: '#8c8c8c',
+          strokeOpacity: 0.5,
+          lineDash: [6, 4],
+          lineWidth: 1,
         },
-        {
-          field: 'nzp',
-          name: 'НЗП',
-          valueFormatter: (v: number) => v.toLocaleString('ru-RU', { maximumFractionDigits: 0 }) + ' ₽',
+      },
+    ],
+    interaction: {
+      tooltip: {
+        render: (_: unknown, { items }: { items: Array<{ value: unknown }> }) => {
+          const firstItem = items[0] as { data?: IBubbleDataPoint };
+          const d = firstItem?.data;
+          if (!d) return '';
+          return `<div style="padding:4px 0;font-size:13px;line-height:1.6">
+            <div style="font-weight:600;margin-bottom:4px">${d.project}</div>
+            <div>Выручка: <b>${formatMln(d.revenue)} млн руб.</b></div>
+            <div>Рентабельность: <b>${d.profitability.toFixed(1)}%</b></div>
+            <div>Валовая прибыль: <b>${formatMln(d.grossProfit)} млн руб.</b></div>
+          </div>`;
         },
-      ],
+      },
     },
-    legend: { position: 'bottom' as const },
+    legend: false as const,
     label: {
       text: 'project',
       position: 'top' as const,
-      style: { fontSize: 10 },
+      style: {
+        fontSize: 10,
+        fill: '#595959',
+        dy: -8,
+      },
+      layout: [
+        { type: 'overlapDodgeY' as const },
+      ],
     },
   };
 

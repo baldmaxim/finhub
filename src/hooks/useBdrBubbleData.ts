@@ -85,7 +85,8 @@ export function useBdrBubbleData(yearFrom: number, yearTo: number): IUseBdrBubbl
 
         const revenue = entry.ks;
         const cost = entry.cost;
-        const profitability = revenue > 0 ? ((revenue - cost) / revenue) * 100 : 0;
+        const grossProfit = revenue - cost;
+        const profitability = revenue > 0 ? (grossProfit / revenue) * 100 : 0;
         const nzp = Math.max(0, entry.fact - entry.ks);
 
         bubbleData.push({
@@ -93,6 +94,7 @@ export function useBdrBubbleData(yearFrom: number, yearTo: number): IUseBdrBubbl
           revenue,
           profitability: Math.round(profitability * 10) / 10,
           nzp,
+          grossProfit,
         });
       }
 
