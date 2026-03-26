@@ -493,41 +493,64 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
   const materialsDelta = useMemo((): IMaterialsDeltaData | null => {
     if (loading || !bdrYears.length || !bddsYears.length) return null;
 
-    const columns: IMaterialsDeltaData['columns'] = [];
-    const line: IMaterialsDeltaData['line'] = [];
+    const allColumns: IMaterialsDeltaData['columns'] = [];
+    const allLine: IMaterialsDeltaData['line'] = [];
     let cumDelta = 0;
+    let lastFactIdx = -1;
 
     const BDDS_MAT_NAME = 'Материальные расходы (Закупка материалов)';
 
+    // Определяем последний месяц с фактическими данными
+    let entryIdx = 0;
+    for (let i = 0; i < bdrYears.length; i++) {
+      const bd = bdrYears[i];
+      const dd = bddsYears[i];
+      if (!dd) continue;
+      const matCat = dd.categories.find((c) => c.name === BDDS_MAT_NAME);
+      const matPlanFromSub = dd.bddsPlanFromSub['materials'] || {};
+      for (const m of MONTHS) {
+        if (!shouldShowMonth(bd.year, m.key)) continue;
+        let bddsFact = matCat ? getVal(dd.factMap, matCat.id, m.key) : 0;
+        if (!bddsFact && matPlanFromSub[m.key]) {
+          bddsFact = Math.round(matPlanFromSub[m.key] * 0.9);
+        }
+        const bdrFact = calcBdr('cost_materials', m.key, 'fact', bd);
+        if (bddsFact > 0 || bdrFact > 0) lastFactIdx = entryIdx;
+        entryIdx++;
+      }
+    }
+
+    entryIdx = 0;
     for (let i = 0; i < bdrYears.length; i++) {
       const bd = bdrYears[i];
       const dd = bddsYears[i];
       if (!dd) continue;
 
       const matCat = dd.categories.find((c) => c.name === BDDS_MAT_NAME);
-      // План БДДС для материалов (из bdr_sub_entries, сдвиг +1 мес)
       const matPlanFromSub = dd.bddsPlanFromSub['materials'] || {};
 
       for (const m of MONTHS) {
         if (!shouldShowMonth(bd.year, m.key)) continue;
+        // Обрезаем будущие пустые периоды
+        if (lastFactIdx >= 0 && entryIdx > lastFactIdx) { entryIdx++; continue; }
         const label = monthLabel(m.key, bd.year, multiYear);
 
         let bddsFact = matCat ? getVal(dd.factMap, matCat.id, m.key) : 0;
-        // Тестовая подстановка: если факт БДДС пуст, берём 90% от плана
         if (!bddsFact && matPlanFromSub[m.key]) {
           bddsFact = Math.round(matPlanFromSub[m.key] * 0.9);
         }
         const bdrFact = calcBdr('cost_materials', m.key, 'fact', bd);
 
-        columns.push({ month: label, value: bddsFact, type: 'БДДС Оплата' });
-        columns.push({ month: label, value: bdrFact, type: 'БДР Списание' });
+        allColumns.push({ month: label, value: bddsFact, type: 'БДДС Оплата' });
+        allColumns.push({ month: label, value: bdrFact, type: 'БДР Списание' });
 
         cumDelta += bddsFact - bdrFact;
-        line.push({ month: label, value: cumDelta, type: 'Дельта (накопл.)' });
+        allLine.push({ month: label, value: cumDelta, type: 'Сальдо (Склад / Задолженность)' });
+        entryIdx++;
       }
     }
 
-    return { columns, line };
+    return { columns: allColumns, line: allLine };
   }, [bdrYears, bddsYears, loading, multiYear, shouldShowMonth]);
 
   return { bdrData, bddsData, materialsDelta, loading, error };
