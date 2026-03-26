@@ -292,6 +292,27 @@ body {
   line-height: 1.2;
 }
 
+.scurve-chart-area {
+  cursor: pointer;
+  transition: all 0.3s ease;
+}
+
+.scurve-expanded {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 1000;
+  background: #fff;
+  overflow-y: auto;
+  padding: 16px;
+}
+
+.scurve-expanded .dashboard-chart-card {
+  margin-bottom: 0;
+}
+
 @media (max-width: 480px) {
   .scurve-kpi-row {
     gap: 12px;

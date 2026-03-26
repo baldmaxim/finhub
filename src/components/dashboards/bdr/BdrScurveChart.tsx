@@ -68,6 +68,7 @@ export const BdrScurveChart: FC<IProps> = ({ data }) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const [mode, setMode] = useState<ChartMode>('cumulative');
   const [vatMode, setVatMode] = useState<VatMode>('without');
+  const [expanded, setExpanded] = useState(false);
 
   const isWithVat = vatMode === 'with';
   const revenueByMonth = isWithVat ? data.revenueByMonthWithVat : data.revenueByMonth;
@@ -379,8 +380,10 @@ export const BdrScurveChart: FC<IProps> = ({ data }) => {
     </span>
   );
 
+  const chartHeight = expanded ? 600 : 320;
+
   return (
-    <div ref={chartRef}>
+    <div ref={chartRef} className={expanded ? 'scurve-expanded' : undefined}>
       <Card title={title} extra={titleExtra} size="small" className="dashboard-chart-card">
         <div className="scurve-kpi-row">
           <div className="scurve-kpi-item">
@@ -408,11 +411,16 @@ export const BdrScurveChart: FC<IProps> = ({ data }) => {
             </div>
           )}
         </div>
-        {mode === 'monthly' ? (
-          <Mix {...monthlyConfig} height={320} />
-        ) : (
-          <Mix {...cumulativeConfig} height={320} />
-        )}
+        <div
+          className="scurve-chart-area"
+          onClick={() => setExpanded(prev => !prev)}
+        >
+          {mode === 'monthly' ? (
+            <Mix {...monthlyConfig} height={chartHeight} />
+          ) : (
+            <Mix {...cumulativeConfig} height={chartHeight} />
+          )}
+        </div>
       </Card>
     </div>
   );
