@@ -283,7 +283,13 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
 
         const grossMargin = rf ? ((rf - ct) / rf) * 100 : 0;
         const netMargin = rf ? ((rf - ct - fixedMonth) / rf) * 100 : 0;
-        marginTrend.push({ month: label, grossMargin, netMargin, revenueFact: rf });
+        const fixedMonthPlan = calcBdr('fixed_expenses', m.key, 'plan', d);
+        const planMargin = rp ? ((rp - cp - fixedMonthPlan) / rp) * 100 : 0;
+        // Обрезаем будущие периоды без фактических данных
+        const isEmptyMarginFuture = lastCostFactIdx && curIdx > lastCostFactIdx && rf === 0;
+        if (!isEmptyMarginFuture) {
+          marginTrend.push({ month: label, grossMargin, netMargin, planMargin, revenueFact: rf, revenuePlan: rp });
+        }
 
         // Себестоимость (гистограмма) — обрезаем пустые будущие периоды
         const isEmptyFuture = lastCostFactIdx && curIdx > lastCostFactIdx && ct === 0;

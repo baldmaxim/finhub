@@ -23,7 +23,9 @@ export interface IMarginTrendPoint {
   month: string;
   grossMargin: number;
   netMargin: number;
+  planMargin: number;
   revenueFact: number;
+  revenuePlan: number;
 }
 
 export interface IBdrDashboardData {
