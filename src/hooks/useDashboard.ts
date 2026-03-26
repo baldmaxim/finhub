@@ -231,8 +231,8 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
   const bdrData = useMemo((): IBdrDashboardData | null => {
     if (loading || !bdrYears.length) return null;
 
-    let revenuePlan = 0, revenueFact = 0, costFact = 0, costPlan = 0, marginalFact = 0;
-    let operatingFact = 0, netProfitFact = 0;
+    let revenuePlan = 0, revenueFact = 0, costFact = 0, costPlan = 0, marginalFact = 0, marginalPlan = 0;
+    let operatingFact = 0, operatingPlan = 0, netProfitFact = 0;
     const costFactByCode: Record<string, number> = {};
     let fixedFact = 0, otherFact = 0;
 
@@ -273,7 +273,9 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
         costFact += ct;
         costPlan += cp;
         marginalFact += calcBdr('marginal_profit', m.key, 'fact', d);
+        marginalPlan += calcBdr('marginal_profit', m.key, 'plan', d);
         operatingFact += calcBdr('operating_profit', m.key, 'fact', d);
+        operatingPlan += calcBdr('operating_profit', m.key, 'plan', d);
         netProfitFact += calcBdr('net_profit', m.key, 'fact', d);
         const fixedMonth = calcBdr('fixed_expenses', m.key, 'fact', d);
         fixedFact += fixedMonth;
@@ -349,8 +351,8 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
 
     return {
       kpis: {
-        revenueFact, revenuePlan, marginalProfit: marginalFact,
-        operatingProfit: operatingFact, operatingProfitPct: operatingPctAvg,
+        revenueFact, revenuePlan, marginalProfit: marginalFact, marginalProfitPlan: marginalPlan,
+        operatingProfit: operatingFact, operatingProfitPlan: operatingPlan, operatingProfitPct: operatingPctAvg,
         netProfit: netProfitFact, costTotal: costFact, costPlanTotal,
       },
       scurve, scurveWithVat, costStructure, costCumulative, waterfall, marginPercent, revenueByMonth, revenueByMonthWithVat, marginTrend,

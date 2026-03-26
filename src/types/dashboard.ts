@@ -40,7 +40,9 @@ export interface IBdrDashboardData {
     revenueFact: number;
     revenuePlan: number;
     marginalProfit: number;
+    marginalProfitPlan: number;
     operatingProfit: number;
+    operatingProfitPlan: number;
     operatingProfitPct: number;
     netProfit: number;
     costTotal: number;
