@@ -138,9 +138,9 @@ export const BddsPlanFactChart: FC<IProps> = ({ data }) => {
           axis: {
             x: {
               title: false,
-              labelAutoRotate: false,
-              labelAutoHide: true,
-              labelAutoEllipsis: true,
+              labelAutoRotate: true,
+              labelAutoHide: false,
+              labelAutoEllipsis: false,
             },
             y: {
               title: 'Сумма (млн руб.)',
@@ -232,9 +232,9 @@ export const BddsPlanFactChart: FC<IProps> = ({ data }) => {
           axis: {
             x: {
               title: false,
-              labelAutoRotate: false,
-              labelAutoHide: true,
-              labelAutoEllipsis: true,
+              labelAutoRotate: true,
+              labelAutoHide: false,
+              labelAutoEllipsis: false,
             },
             y: {
               title: 'Сумма нараст. (млн руб.)',
