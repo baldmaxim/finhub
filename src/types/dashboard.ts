@@ -67,12 +67,6 @@ export interface IExecutionVsKsPoint {
   type: 'Выполнение' | 'Актирование (КС-2)';
 }
 
-export interface IIncomeByProjectPoint {
-  month: string;
-  value: number;
-  project: string;
-}
-
 export interface IMaterialsDeltaData {
   columns: Array<{ month: string; value: number; type: string }>;
   line: Array<{ month: string; value: number; type: string }>;
@@ -80,7 +74,7 @@ export interface IMaterialsDeltaData {
 
 export interface IBddsDashboardData {
   planFactIncome: IMonthDataPoint[];
-  incomeByProject: IIncomeByProjectPoint[];
+  factIncomeLine: IMonthDataPoint[];
   planIncomeLine: IMonthDataPoint[];
   ncfBySection: IMonthDataPoint[];
   kpis: {

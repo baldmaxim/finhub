@@ -10,7 +10,7 @@ import * as fixedPlanService from '../services/bdrFixedExpensesPlanService';
 import { MONTHS, SECTION_NAMES, SECTION_ORDER } from '../utils/constants';
 import { OVERHEAD_CODES } from '../utils/bdrConstants';
 import { calculateNetCashFlow } from '../utils/calculations';
-import type { IBdrDashboardData, IBddsDashboardData, IMaterialsDeltaData, IMonthDataPoint, IIncomeByProjectPoint, ICostItem, IWaterfallItem, IMarginTrendPoint } from '../types/dashboard';
+import type { IBdrDashboardData, IBddsDashboardData, IMaterialsDeltaData, IMonthDataPoint, ICostItem, IWaterfallItem, IMarginTrendPoint } from '../types/dashboard';
 import type { Project } from '../types/projects';
 import type { MonthValues, BdrSubType } from '../types/bdr';
 import type { BddsCategory, BddsRow, SectionCode } from '../types/bdds';
@@ -378,25 +378,9 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
     let ncfOp = 0, ncfInv = 0, ncfFin = 0;
     let planIncTotal = 0, factIncTotal = 0;
     const planFactIncome: IMonthDataPoint[] = [];
-    const incomeByProject: IIncomeByProjectPoint[] = [];
+    const factIncomeLine: IMonthDataPoint[] = [];
     const planIncomeLine: IMonthDataPoint[] = [];
     const ncfBySection: IMonthDataPoint[] = [];
-
-    const projectNameMap = new Map<string, string>();
-    for (const p of projects) {
-      projectNameMap.set(p.id, p.code || p.name);
-    }
-
-    // Группируем поступления по проекту: { "year|projectId" -> Map<month, amount> }
-    const incByProjectMap = new Map<string, Map<number, number>>();
-    for (const d of bddsYears) {
-      for (const row of d.incomeByProject) {
-        const key = `${d.year}|${row.project_id}`;
-        if (!incByProjectMap.has(key)) incByProjectMap.set(key, new Map());
-        const m = incByProjectMap.get(key)!;
-        m.set(row.month, (m.get(row.month) || 0) + row.amount);
-      }
-    }
 
     for (const d of bddsYears) {
       const cats = d.categories;
@@ -455,18 +439,8 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
         // План для линии комбо-графика
         planIncomeLine.push({ month: label, value: planInc, type: 'План' });
 
-        // Поступления по проектам для стековых столбцов
-        for (const [key, monthMap] of incByProjectMap) {
-          const [yr, pid] = key.split('|');
-          if (Number(yr) !== d.year) continue;
-          const val = monthMap.get(m.key) || 0;
-          if (val === 0) continue;
-          incomeByProject.push({
-            month: label,
-            value: val,
-            project: projectNameMap.get(pid) || pid.slice(0, 8),
-          });
-        }
+        // Факт поступлений для столбцов комбо-графика
+        factIncomeLine.push({ month: label, value: factInc, type: 'Факт' });
 
         // ЧДП по секциям
         for (const sc of SECTION_ORDER) {
@@ -481,7 +455,7 @@ export function useDashboard(yearFrom: number, yearTo: number, projectId: string
     }
 
     return {
-      planFactIncome, incomeByProject, planIncomeLine, ncfBySection,
+      planFactIncome, factIncomeLine, planIncomeLine, ncfBySection,
       kpis: {
         ncfOperating: ncfOp, ncfInvesting: ncfInv, ncfFinancing: ncfFin,
         ncfTotal: ncfOp + ncfInv + ncfFin,

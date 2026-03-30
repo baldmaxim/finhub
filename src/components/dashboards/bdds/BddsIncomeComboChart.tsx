@@ -2,16 +2,16 @@ import { type FC, useMemo, useRef } from 'react';
 import { Card, Tooltip, Statistic, Row, Col } from 'antd';
 import { InfoCircleOutlined } from '@ant-design/icons';
 import { DualAxes } from '@ant-design/charts';
-import type { IBddsDashboardData, IIncomeByProjectPoint, IMonthDataPoint } from '../../../types/dashboard';
+import type { IBddsDashboardData, IMonthDataPoint } from '../../../types/dashboard';
 import { ShareChartButton } from '../../common/ShareChartButton';
 
 interface IProps {
   data: IBddsDashboardData;
 }
 
-const HELP_TEXT = `Поступления по проектам: факт vs план.
+const HELP_TEXT = `Поступления: факт vs план.
 
-• Столбцы — фактические поступления, сгруппированные по проектам (стек).
+• Столбцы — фактические поступления (итого).
 • Пунктирная линия — плановые поступления.
 
 Столбцы обрываются на текущем месяце. Линия плана продолжается до конца периода.`;
@@ -27,49 +27,39 @@ const axisFormatter = (v: number): string => {
   return mln.toLocaleString('ru-RU', { maximumFractionDigits: 1 });
 };
 
-const BLUE_SHADES = [
-  '#003a8c', '#0050b3', '#096dd9', '#1890ff', '#40a9ff',
-  '#69c0ff', '#91d5ff', '#bae7ff', '#0958d9', '#1677ff',
-];
-
-const LEGEND_ITEMS = [
-  { color: '#1890ff', label: 'Факт (по проектам)', isRect: true },
-  { color: '#595959', label: 'План', isDash: true },
-];
-
 export const BddsIncomeComboChart: FC<IProps> = ({ data }) => {
   const chartRef = useRef<HTMLDivElement>(null);
-  const hasProjectData = data.incomeByProject.length > 0;
+  const hasData = data.factIncomeLine.length > 0 || data.planIncomeLine.length > 0;
 
-  if (!hasProjectData) return null;
+  if (!hasData) return null;
 
-  // Порядок месяцев и обрезка факта
-  const { months, lastFactMonth, factColumns, planLine } = useMemo(() => {
+  const { months, lastFactMonth, factBars, planLine } = useMemo(() => {
     const monthOrder: string[] = [];
     const seen = new Set<string>();
 
     for (const pt of data.planIncomeLine) {
       if (!seen.has(pt.month)) { seen.add(pt.month); monthOrder.push(pt.month); }
     }
-    for (const pt of data.incomeByProject) {
+    for (const pt of data.factIncomeLine) {
       if (!seen.has(pt.month)) { seen.add(pt.month); monthOrder.push(pt.month); }
     }
 
     let lastFact = '';
-    for (const pt of data.incomeByProject) {
+    for (const pt of data.factIncomeLine) {
       if (pt.value > 0) lastFact = pt.month;
     }
 
+    // Обрезаем факт до последнего ненулевого месяца
+    const factBars: IMonthDataPoint[] = [];
     let reachedEnd = false;
-    const factColumns: IIncomeByProjectPoint[] = [];
-    for (const pt of data.incomeByProject) {
+    for (const pt of data.factIncomeLine) {
       if (reachedEnd) continue;
-      factColumns.push(pt);
+      factBars.push(pt);
       if (pt.month === lastFact) reachedEnd = true;
     }
 
-    return { months: monthOrder, lastFactMonth: lastFact, factColumns, planLine: data.planIncomeLine };
-  }, [data.incomeByProject, data.planIncomeLine]);
+    return { months: monthOrder, lastFactMonth: lastFact, factBars, planLine: data.planIncomeLine };
+  }, [data.factIncomeLine, data.planIncomeLine]);
 
   // KPI — до последнего фактического месяца
   const kpi = useMemo(() => {
@@ -78,27 +68,27 @@ export const BddsIncomeComboChart: FC<IProps> = ({ data }) => {
     for (const m of months) {
       if (reachedEnd) continue;
       const planPt = data.planIncomeLine.find((p) => p.month === m);
+      const factPt = data.factIncomeLine.find((p) => p.month === m);
       planTotal += planPt?.value ?? 0;
-      factTotal += data.incomeByProject.filter((p) => p.month === m).reduce((s, p) => s + p.value, 0);
+      factTotal += factPt?.value ?? 0;
       if (m === lastFactMonth) reachedEnd = true;
     }
     return { plan: planTotal, fact: factTotal, delta: factTotal - planTotal };
-  }, [months, lastFactMonth, data.planIncomeLine, data.incomeByProject]);
+  }, [months, lastFactMonth, data.planIncomeLine, data.factIncomeLine]);
 
   // Tooltip map
   const tooltipMap = useMemo(() => {
-    const map = new Map<string, { plan: number; fact: number; projects: Array<{ name: string; value: number }> }>();
+    const map = new Map<string, { plan: number; fact: number }>();
     for (const m of months) {
       const planPt = data.planIncomeLine.find((p) => p.month === m);
-      const factPts = data.incomeByProject.filter((p) => p.month === m);
+      const factPt = data.factIncomeLine.find((p) => p.month === m);
       map.set(m, {
         plan: planPt?.value ?? 0,
-        fact: factPts.reduce((s, p) => s + p.value, 0),
-        projects: factPts.filter((p) => p.value > 0).map((p) => ({ name: p.project, value: p.value })),
+        fact: factPt?.value ?? 0,
       });
     }
     return map;
-  }, [months, data.planIncomeLine, data.incomeByProject]);
+  }, [months, data.planIncomeLine, data.factIncomeLine]);
 
   const config = {
     xField: 'month',
@@ -111,40 +101,31 @@ export const BddsIncomeComboChart: FC<IProps> = ({ data }) => {
           if (!info) return '';
           const pct = info.plan > 0 ? ((info.fact / info.plan) * 100).toFixed(0) : '—';
           const deltaColor = info.fact >= info.plan ? '#52c41a' : '#ff4d4f';
-          const projectsHtml = info.projects.length > 0
-            ? info.projects.map((p) => `<div style="padding-left:8px;font-size:12px">• ${p.name}: ${formatMln(p.value)} млн</div>`).join('')
-            : '';
           return `<div style="padding:4px 0;font-size:13px;line-height:1.6">
             <div style="font-weight:600;margin-bottom:4px">${monthKey}</div>
             <div>План: <b>${formatMln(info.plan)} млн</b></div>
             <div>Факт: <b>${formatMln(info.fact)} млн</b></div>
             <div>Выполнение: <span style="color:${deltaColor};font-weight:600">${pct}%</span></div>
-            ${projectsHtml}
           </div>`;
         },
       },
     },
     children: [
-      // Столбцы факта (стек по проектам) — единая ось
+      // Столбцы факта — единый синий столбец
       {
-        data: factColumns,
+        data: factBars,
         type: 'interval' as const,
         yField: 'value',
-        colorField: 'project',
-        stack: true,
         scale: {
           x: { domain: months },
           y: { key: 'shared' },
-          color: {
-            type: 'ordinal' as const,
-            range: BLUE_SHADES,
-          },
         },
-        style: { maxWidth: 36, stroke: '#ffffff', lineWidth: 1 },
+        style: { maxWidth: 36, fill: '#1890ff', fillOpacity: 0.85 },
         axis: {
           x: {
             title: false,
-            labelAutoRotate: false,
+            label: true,
+            labelAutoRotate: true,
             labelAutoHide: false,
             labelAutoEllipsis: false,
             style: { labelFontSize: 11 },
@@ -158,9 +139,10 @@ export const BddsIncomeComboChart: FC<IProps> = ({ data }) => {
         legend: false,
         tooltip: {
           items: [
-            (d: IIncomeByProjectPoint) => ({
-              name: d.project,
+            (d: IMonthDataPoint) => ({
+              name: 'Факт',
               value: formatMln(d.value) + ' млн',
+              color: '#1890ff',
             }),
           ],
         },
@@ -205,7 +187,7 @@ export const BddsIncomeComboChart: FC<IProps> = ({ data }) => {
 
   const title = (
     <span>
-      Поступления по проектам: план vs факт{' '}
+      Поступления: план vs факт{' '}
       <Tooltip title={<span style={{ whiteSpace: 'pre-line' }}>{HELP_TEXT}</span>} overlayStyle={{ maxWidth: 480 }}>
         <InfoCircleOutlined className="bdr-bubble-help-icon" />
       </Tooltip>
@@ -214,7 +196,7 @@ export const BddsIncomeComboChart: FC<IProps> = ({ data }) => {
 
   return (
     <div ref={chartRef}>
-      <Card title={title} extra={<ShareChartButton chartRef={chartRef} title="Поступления по проектам" />} size="small" className="dashboard-chart-card">
+      <Card title={title} extra={<ShareChartButton chartRef={chartRef} title="Поступления: план vs факт" />} size="small" className="dashboard-chart-card">
         {/* KPI блок */}
         <Row gutter={16} style={{ marginBottom: 12 }}>
           <Col xs={8}>
@@ -244,16 +226,14 @@ export const BddsIncomeComboChart: FC<IProps> = ({ data }) => {
         </Row>
         {/* Легенда */}
         <div style={{ display: 'flex', gap: 14, marginBottom: 8, flexWrap: 'wrap' }}>
-          {LEGEND_ITEMS.map((item) => (
-            <div key={item.label} style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
-              {item.isDash ? (
-                <svg width="20" height="10"><line x1="0" y1="5" x2="20" y2="5" stroke={item.color} strokeWidth="2" strokeDasharray="4 3" /></svg>
-              ) : (
-                <span style={{ width: 12, height: 10, background: item.color, opacity: 0.75, display: 'inline-block', borderRadius: 2 }} />
-              )}
-              <span style={{ color: '#595959' }}>{item.label}</span>
-            </div>
-          ))}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
+            <span style={{ width: 12, height: 10, background: '#1890ff', opacity: 0.85, display: 'inline-block', borderRadius: 2 }} />
+            <span style={{ color: '#595959' }}>Факт</span>
+          </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 11 }}>
+            <svg width="20" height="10"><line x1="0" y1="5" x2="20" y2="5" stroke="#595959" strokeWidth="2" strokeDasharray="4 3" /></svg>
+            <span style={{ color: '#595959' }}>План</span>
+          </div>
         </div>
         <DualAxes {...config} height={350} />
       </Card>
