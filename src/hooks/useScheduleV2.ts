@@ -84,19 +84,12 @@ export function useScheduleV2(yearFrom: number, yearTo: number): IUseScheduleV2R
     loadData();
   }, [loadData]);
 
-  // === Прямые категории (для финансовых расчётов — всегда direct) ===
-  const directCategories = useMemo(() => {
-    return categories.filter((c) => c.cost_group === 'direct');
-  }, [categories]);
-
-  const directCatIds = useMemo(() => {
-    return new Set(directCategories.map((c) => c.id));
-  }, [directCategories]);
-
-  /** Общая сумма контракта (1чЦСР) по прямым затратам */
+  /** Общая сумма контракта по выбранной группе затрат */
   const totalContractValue = useMemo(() => {
-    return directCategories.reduce((s, c) => s + Number(c.total), 0);
-  }, [directCategories]);
+    return categories
+      .filter((c) => c.cost_group === costGroup)
+      .reduce((s, c) => s + Number(c.total), 0);
+  }, [categories, costGroup]);
 
   // === Фильтрация по годам ===
   const filteredMonthly = useMemo(() => {
@@ -134,16 +127,16 @@ export function useScheduleV2(yearFrom: number, yearTo: number): IUseScheduleV2R
     return Array.from(keys).sort();
   }, [filteredMonthly, filteredFinance, groupCatIds]);
 
-  // === Помесячные суммы СМР по прямым затратам (для финансовых расчётов) ===
-  const directSmrByMonth = useMemo((): Map<string, number> => {
+  // === Помесячные суммы СМР по выбранной группе затрат ===
+  const groupSmrByMonth = useMemo((): Map<string, number> => {
     const map = new Map<string, number>();
     for (const e of filteredMonthly) {
-      if (directCatIds.has(e.category_id)) {
+      if (groupCatIds.has(e.category_id)) {
         map.set(e.month_key, (map.get(e.month_key) || 0) + Number(e.amount));
       }
     }
     return map;
-  }, [filteredMonthly, directCatIds]);
+  }, [filteredMonthly, groupCatIds]);
 
   // === Авансы из БД ===
   const advanceIncomeByMonth = useMemo((): Map<string, number> => {
@@ -159,7 +152,7 @@ export function useScheduleV2(yearFrom: number, yearTo: number): IUseScheduleV2R
   // === Динамический расчёт финансовых параметров по формулам договора ===
   const financeCalc = useMemo(() => {
     const allMonths = Array.from(new Set([
-      ...directSmrByMonth.keys(),
+      ...groupSmrByMonth.keys(),
       ...advanceIncomeByMonth.keys(),
     ])).sort();
 
@@ -179,7 +172,7 @@ export function useScheduleV2(yearFrom: number, yearTo: number): IUseScheduleV2R
     let cumulativeGU = 0;
 
     for (const mk of allMonths) {
-      const smr = directSmrByMonth.get(mk) || 0;
+      const smr = groupSmrByMonth.get(mk) || 0;
       const advanceIncome = advanceIncomeByMonth.get(mk) || 0;
       const year = parseInt(mk.split('-')[0], 10);
       const vatRate = year >= 2026 ? VAT_RATE_2026 : VAT_RATE_DEFAULT;
@@ -230,7 +223,7 @@ export function useScheduleV2(yearFrom: number, yearTo: number): IUseScheduleV2R
     }
 
     return result;
-  }, [directSmrByMonth, advanceIncomeByMonth, totalContractValue]);
+  }, [groupSmrByMonth, advanceIncomeByMonth, totalContractValue]);
 
   // === Таблица стоимости ===
   const costRows = useMemo((): IScheduleV2CostRow[] => {
