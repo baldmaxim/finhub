@@ -26,11 +26,7 @@ export const ShareChartButton: FC<IProps> = ({ chartRef, title = 'График' 
         canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('toBlob failed'))), 'image/png');
       });
 
-      const file = new File([blob], `${title}.png`, { type: 'image/png' });
-
-      if (navigator.share && navigator.canShare?.({ files: [file] })) {
-        await navigator.share({ files: [file], title });
-      } else {
+      const download = () => {
         const url = URL.createObjectURL(blob);
         const link = document.createElement('a');
         link.href = url;
@@ -38,9 +34,21 @@ export const ShareChartButton: FC<IProps> = ({ chartRef, title = 'График' 
         link.click();
         URL.revokeObjectURL(url);
         message.success('График сохранён');
+      };
+
+      const file = new File([blob], `${title}.png`, { type: 'image/png' });
+
+      if (navigator.share && navigator.canShare?.({ files: [file] })) {
+        try {
+          await navigator.share({ files: [file], title });
+        } catch {
+          download();
+        }
+      } else {
+        download();
       }
     } catch {
-      message.error('Не удалось поделиться графиком');
+      message.error('Не удалось сохранить график');
     } finally {
       loadingRef.current = false;
     }
