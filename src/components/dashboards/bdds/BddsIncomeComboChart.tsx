@@ -27,6 +27,11 @@ const axisFormatter = (v: number): string => {
   return mln.toLocaleString('ru-RU', { maximumFractionDigits: 1 });
 };
 
+const BLUE_SHADES = [
+  '#003a8c', '#0050b3', '#096dd9', '#1890ff', '#40a9ff',
+  '#69c0ff', '#91d5ff', '#bae7ff', '#0958d9', '#1677ff',
+];
+
 const LEGEND_ITEMS = [
   { color: '#1890ff', label: 'Факт (по проектам)', isRect: true },
   { color: '#595959', label: 'План', isDash: true },
@@ -132,19 +137,17 @@ export const BddsIncomeComboChart: FC<IProps> = ({ data }) => {
           y: { key: 'shared' },
           color: {
             type: 'ordinal' as const,
-            range: [
-              '#1890ff', '#52c41a', '#faad14', '#722ed1', '#13c2c2',
-              '#eb2f96', '#fa8c16', '#2f54eb', '#a0d911', '#ff4d4f',
-            ],
+            range: BLUE_SHADES,
           },
         },
-        style: { maxWidth: 36 },
+        style: { maxWidth: 36, stroke: '#ffffff', lineWidth: 1 },
         axis: {
           x: {
             title: false,
             labelAutoRotate: false,
-            labelAutoHide: true,
-            labelAutoEllipsis: true,
+            labelAutoHide: false,
+            labelAutoEllipsis: false,
+            style: { labelFontSize: 11 },
           },
           y: {
             title: 'Сумма (млн руб.)',
@@ -195,7 +198,10 @@ export const BddsIncomeComboChart: FC<IProps> = ({ data }) => {
     ],
   };
 
-  const deltaColor = kpi.delta >= 0 ? '#52c41a' : '#ff4d4f';
+  const NEAR_ZERO_THRESHOLD = 1;
+  const deltaColor = Math.abs(kpi.delta) <= NEAR_ZERO_THRESHOLD
+    ? '#8c8c8c'
+    : kpi.delta > 0 ? '#52c41a' : '#ff4d4f';
 
   const title = (
     <span>
