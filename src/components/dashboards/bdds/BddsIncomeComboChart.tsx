@@ -203,6 +203,9 @@ export const BddsIncomeComboChart: FC<IProps> = ({ data }) => {
           maxWidth: 36,
           stroke: '#ffffff',
           lineWidth: 1,
+          fill: (datum: { project?: string }) => {
+            return projectColorMap.get(datum.project || '') || '#1890ff';
+          },
         },
         axis: {
           x: {
