@@ -346,19 +346,44 @@ export function useScheduleV2(yearFrom: number, yearTo: number): IUseScheduleV2R
   // === Заполнение БДДС/БДР из данных Плановый график 2.0 ===
   const [filling, setFilling] = useState(false);
 
-  const fillBdds = useCallback(async () => {
+  const fillBdds = useCallback(async (): Promise<number> => {
     if (!projectId) throw new Error('Проект не найден');
     setFilling(true);
     try {
-      // 1. Маппинг категорий → work_type_code, агрегация помесячных сумм
-      const smrByCodeMonth = new Map<string, Map<string, number>>();
+      // Загружаем ВСЕ помесячные данные (без фильтра по годам) для полноты расчёта
+      const allMonthly = await scheduleV2Service.getMonthlyData(projectId);
+      const allFinance = await scheduleV2Service.getFinanceData(projectId);
+
+      // Категории текущей группы затрат
+      const groupCats = categories.filter((c) => c.cost_group === costGroup);
+      const catIds = new Set(groupCats.map((c) => c.id));
       const catIdToName = new Map<string, string>();
-      for (const cat of groupCategories) {
+      for (const cat of groupCats) {
         catIdToName.set(cat.id, cat.name);
       }
 
-      for (const entry of filteredMonthly) {
-        if (!groupCatIds.has(entry.category_id)) continue;
+      // Общая сумма контракта (для расчёта зачёта аванса)
+      const contractTotal = groupCats.reduce((s, c) => s + Number(c.total), 0);
+
+      // Помесячные суммы СМР по группе
+      const smrByMonth = new Map<string, number>();
+      for (const e of allMonthly) {
+        if (!catIds.has(e.category_id)) continue;
+        smrByMonth.set(e.month_key, (smrByMonth.get(e.month_key) || 0) + Number(e.amount));
+      }
+
+      // Авансы из БД
+      const advByMonth = new Map<string, number>();
+      for (const e of allFinance) {
+        if (e.row_code === 'advance_income') {
+          advByMonth.set(e.month_key, (advByMonth.get(e.month_key) || 0) + Number(e.amount));
+        }
+      }
+
+      // 1. Маппинг категорий → work_type_code, агрегация помесячных сумм
+      const smrByCodeMonth = new Map<string, Map<string, number>>();
+      for (const entry of allMonthly) {
+        if (!catIds.has(entry.category_id)) continue;
         const catName = catIdToName.get(entry.category_id);
         if (!catName) continue;
         const workType = getCategoryWorkType(catName);
@@ -369,7 +394,42 @@ export function useScheduleV2(yearFrom: number, yearTo: number): IUseScheduleV2R
         monthMap.set(entry.month_key, (monthMap.get(entry.month_key) || 0) + Number(entry.amount));
       }
 
-      // 2. Собираем записи для upsert
+      // 2. Пересчёт финансовых параметров (полный диапазон, без фильтра по годам)
+      const allMonths = Array.from(new Set([...smrByMonth.keys(), ...advByMonth.keys()])).sort();
+      let cumWork = 0, cumAdvPaid = 0, cumAdvOffset = 0, cumGU = 0;
+
+      const finCalc: Record<string, {
+        smr: number; advanceIncome: number; advanceOffset: number;
+        guaranteeRetention: number; guaranteeReturn: number; totalIncome: number;
+      }> = {};
+
+      for (const mk of allMonths) {
+        const smr = smrByMonth.get(mk) || 0;
+        const advIncome = advByMonth.get(mk) || 0;
+        const unpaid = cumAdvPaid - cumAdvOffset;
+        const remaining = contractTotal - cumWork;
+        const offsetPct = remaining > 0 ? unpaid / remaining : 0;
+        const advOffset = smr * offsetPct;
+        const gu = smr * 0.05;
+        const totalIncome = smr + advIncome - advOffset - gu;
+
+        finCalc[mk] = { smr, advanceIncome: advIncome, advanceOffset: advOffset, guaranteeRetention: gu, guaranteeReturn: 0, totalIncome };
+        cumAdvPaid += advIncome;
+        cumAdvOffset += advOffset;
+        cumWork += smr;
+        cumGU += gu;
+      }
+
+      // Возврат ГУ — 24 месяца после окончания работ
+      const guReturnMonth = '2030-09';
+      if (!finCalc[guReturnMonth]) {
+        finCalc[guReturnMonth] = { smr: 0, advanceIncome: 0, advanceOffset: 0, guaranteeRetention: 0, guaranteeReturn: cumGU, totalIncome: cumGU };
+      } else {
+        finCalc[guReturnMonth].guaranteeReturn = cumGU;
+        finCalc[guReturnMonth].totalIncome += cumGU;
+      }
+
+      // 3. Собираем записи для upsert
       const entries: Array<{
         project_id: string;
         work_type_code: string;
@@ -380,29 +440,23 @@ export function useScheduleV2(yearFrom: number, yearTo: number): IUseScheduleV2R
       // СМР по видам работ
       for (const [workType, monthMap] of smrByCodeMonth) {
         for (const [mk, amount] of monthMap) {
-          if (amount) entries.push({ project_id: projectId, work_type_code: workType, month_key: mk, amount });
+          if (amount) entries.push({ project_id: projectId, work_type_code: workType, month_key: mk, amount: Math.round(amount * 100) / 100 });
         }
       }
 
-      // Финансовые строки из динамического расчёта
-      const financeCodes = [
-        'total_smr', 'advance_income', 'advance_offset',
-        'guarantee_retention', 'guarantee_return', 'total_income',
-      ] as const;
+      // Финансовые строки
+      const financeCodeMap: Array<[string, keyof typeof finCalc[string]]> = [
+        ['total_smr', 'smr'],
+        ['advance_income', 'advanceIncome'],
+        ['advance_offset', 'advanceOffset'],
+        ['guarantee_retention', 'guaranteeRetention'],
+        ['guarantee_return', 'guaranteeReturn'],
+        ['total_income', 'totalIncome'],
+      ];
 
-      const financeFieldMap: Record<string, string> = {
-        total_smr: 'smr',
-        advance_income: 'advanceIncome',
-        advance_offset: 'advanceOffset',
-        guarantee_retention: 'guaranteeRetention',
-        guarantee_return: 'guaranteeReturn',
-        total_income: 'totalIncome',
-      };
-
-      for (const [mk, data] of Object.entries(financeCalc)) {
-        for (const code of financeCodes) {
-          const field = financeFieldMap[code] as keyof typeof data;
-          const val = data[field] as number;
+      for (const [mk, data] of Object.entries(finCalc)) {
+        for (const [code, field] of financeCodeMap) {
+          const val = data[field];
           if (val) {
             entries.push({
               project_id: projectId,
@@ -414,13 +468,18 @@ export function useScheduleV2(yearFrom: number, yearTo: number): IUseScheduleV2R
         }
       }
 
-      // 3. Очищаем старые данные по проекту и записываем новые
+      if (entries.length === 0) {
+        throw new Error(`Нет данных для заполнения. Категорий: ${groupCats.length}, помесячных записей: ${allMonthly.length}`);
+      }
+
+      // 4. Очищаем старые данные по проекту и записываем новые
       await bddsIncomeService.deleteProjectEntries(projectId);
       await bddsIncomeService.upsertEntries(entries);
+      return entries.length;
     } finally {
       setFilling(false);
     }
-  }, [projectId, groupCategories, filteredMonthly, groupCatIds, financeCalc]);
+  }, [projectId, categories, costGroup]);
 
   return {
     projectName,

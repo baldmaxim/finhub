@@ -28,8 +28,8 @@ export const ScheduleV2Page = () => {
 
   const handleFillBdds = useCallback(async () => {
     try {
-      await fillBdds();
-      message.success('БДДС и БДР заполнены из Плановый график 2.0');
+      const count = await fillBdds();
+      message.success(`БДДС и БДР заполнены: ${count} записей из Плановый график 2.0`);
     } catch (err) {
       message.error(err instanceof Error ? err.message : 'Ошибка заполнения');
     }
