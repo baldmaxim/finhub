@@ -10,6 +10,13 @@ WHERE parent_id = (
   WHERE name = 'Поступление средств от текущей деятельности'
     AND section_code = 'operating'
     AND row_type = 'income'
+)
+AND name NOT IN (
+  'Авансы от Заказчика (на обычный р/с)',
+  'Поступления от Заказчика на ОБС',
+  'Оплата от Заказчика за выполненные работы (на обычный р/с)',
+  'Оплата по распред. письмам (РП)',
+  'Возврат гарантийных удержаний от Заказчика'
 );
 
 -- 2) Вставляем новые 5 дочерних строк доходов
@@ -25,7 +32,8 @@ FROM bdds_categories parent,
 ) AS child(name, sort_order)
 WHERE parent.name = 'Поступление средств от текущей деятельности'
   AND parent.section_code = 'operating'
-  AND parent.row_type = 'income';
+  AND parent.row_type = 'income'
+ON CONFLICT (name, parent_id) DO NOTHING;
 
 -- 3) Добавляем строку «Субподряд: оплата по РП» в расходы
 INSERT INTO bdds_categories (section_code, row_type, name, sort_order, is_calculated, parent_id)
@@ -34,7 +42,7 @@ FROM bdds_categories parent
 WHERE parent.name = 'Выплата средств по текущей деятельности'
   AND parent.section_code = 'operating'
   AND parent.row_type = 'expense'
-ON CONFLICT DO NOTHING;
+ON CONFLICT (name, parent_id) DO NOTHING;
 
 -- 4) Расширяем CHECK constraint на row_type, добавляя balance_open и balance_close
 ALTER TABLE bdds_categories DROP CONSTRAINT IF EXISTS bdds_categories_row_type_check;
@@ -55,7 +63,8 @@ FROM bdds_categories parent,
 ) AS child(name, sort_order)
 WHERE parent.name = 'Остаток денежных средств на начало периода'
   AND parent.section_code = 'operating'
-  AND parent.row_type = 'balance_open';
+  AND parent.row_type = 'balance_open'
+ON CONFLICT (name, parent_id) DO NOTHING;
 
 -- 4b) Остаток на конец периода (раскрываемая)
 INSERT INTO bdds_categories (section_code, row_type, name, sort_order, is_calculated, calculation_formula)
@@ -71,4 +80,5 @@ FROM bdds_categories parent,
 ) AS child(name, sort_order)
 WHERE parent.name = 'Остаток денежных средств на конец периода'
   AND parent.section_code = 'operating'
-  AND parent.row_type = 'balance_close';
+  AND parent.row_type = 'balance_close'
+ON CONFLICT (name, parent_id) DO NOTHING;
