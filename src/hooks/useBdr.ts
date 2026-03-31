@@ -45,8 +45,8 @@ export function useBdr(yearFrom: number, yearTo: number, projectId: string | nul
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [overheadExpanded, setOverheadExpanded] = useState(false);
-  const [costExpanded, setCostExpanded] = useState(false);
+  const [overheadExpanded, setOverheadExpanded] = useState(true);
+  const [costExpanded, setCostExpanded] = useState(true);
   const [openSubType, setOpenSubType] = useState<BdrSubType | null>(null);
 
   const dirtyRef = useRef<Set<string>>(new Set());
