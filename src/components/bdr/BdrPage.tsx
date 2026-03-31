@@ -2,7 +2,8 @@ import { useState, useCallback } from 'react';
 import { Card, Alert, message } from 'antd';
 import { useBdr } from '../../hooks/useBdr';
 import { BdrToolbar } from './BdrToolbar';
-import { BdrTable } from './BdrTable';
+import { BdrKpiDashboard } from './BdrKpiDashboard';
+import { BdrTreeTable } from './BdrTreeTable';
 import { BdrSubModal } from './sub/BdrSubModal';
 import { BdrFixedExpensesPlanModal } from './BdrFixedExpensesPlanModal';
 import type { Project } from '../../types/projects';
@@ -14,6 +15,8 @@ export const BdrPage = () => {
   const [yearTo, setYearTo] = useState(currentYear);
   const [selectedProjectId, setSelectedProjectId] = useState<string | null>(null);
   const [fixedPlanModalOpen, setFixedPlanModalOpen] = useState(false);
+  const [hideEmpty, setHideEmpty] = useState(false);
+
   const {
     rows,
     yearRows,
@@ -21,10 +24,6 @@ export const BdrPage = () => {
     loading,
     saving,
     error,
-    overheadExpanded,
-    costExpanded,
-    toggleOverhead,
-    toggleCost,
     updateEntry,
     saveAll,
     openSubType,
@@ -79,7 +78,8 @@ export const BdrPage = () => {
 
   return (
     <>
-      <Card title="БДР — Бюджет Доходов и Расходов" loading={loading}>
+      <BdrKpiDashboard rows={rows} />
+      <Card title="БДР — Бюджет Доходов и Расходов" loading={loading} className="mt-16">
         <BdrToolbar
           yearFrom={yearFrom}
           yearTo={yearTo}
@@ -89,15 +89,14 @@ export const BdrPage = () => {
           saving={saving}
           selectedProjectId={selectedProjectId}
           onProjectChange={handleProjectChange}
+          hideEmpty={hideEmpty}
+          onHideEmptyChange={setHideEmpty}
         />
-        <BdrTable
+        <BdrTreeTable
           rows={rows}
           yearRows={yearRows}
           yearMonthSlots={yearMonthSlots}
-          overheadExpanded={overheadExpanded}
-          costExpanded={costExpanded}
-          onToggleOverhead={toggleOverhead}
-          onToggleCost={toggleCost}
+          hideEmpty={hideEmpty}
           onUpdatePlan={isReadOnly ? undefined : (code, month, amount) => updateEntry(code, month, amount, 'plan')}
           onUpdateFact={isReadOnly ? undefined : (code, month, amount) => updateEntry(code, month, amount, 'fact')}
           onOpenSub={setOpenSubType}

@@ -487,6 +487,113 @@ body {
   font-weight: 600;
 }
 
+/* ========== БДР Tree Grid ========== */
+
+/* KPI Dashboard — карточки над таблицей */
+.bdr-kpi-dashboard {
+  margin-bottom: 16px;
+}
+
+.bdr-kpi-dash-card {
+  height: 100%;
+  border-radius: 8px;
+  transition: box-shadow 0.2s;
+}
+
+.bdr-kpi-dash-card:hover {
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.bdr-kpi-dash-icon {
+  font-size: 18px;
+  margin-bottom: 4px;
+}
+
+.bdr-kpi-dash-value {
+  font-size: 22px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.bdr-kpi-dash-title {
+  font-size: 11px;
+  color: #8c8c8c;
+  margin-top: 2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Строка-заголовок секции (I. ПРОИЗВОДСТВО, II. СЕБЕСТОИМОСТЬ и т.д.) */
+.bdr-tree-section-row > td {
+  background-color: #f0f5ff !important;
+  font-weight: 700;
+  font-size: 13px;
+  border-bottom: 2px solid #d6e4ff !important;
+}
+
+.bdr-tree-section-cell {
+  font-weight: 700 !important;
+}
+
+.bdr-tree-section-name {
+  font-size: 13px;
+  letter-spacing: 0.02em;
+}
+
+/* Строки прибыли (Маржинальная, Операционная, Чистая) */
+.bdr-tree-profit-row > td {
+  background-color: #e6f7ff !important;
+  font-weight: 700;
+  border-left: 3px solid #1677ff;
+}
+
+/* Строки процентов (рентабельность, коэффициенты) */
+.bdr-tree-percent-row > td {
+  font-style: italic;
+  font-size: 12px;
+}
+
+.bdr-percent-row-name {
+  color: #595959;
+  font-size: 12px;
+}
+
+/* Отступ дочерних строк */
+.bdr-tree-child-indent {
+  padding-left: 16px;
+}
+
+/* Ссылка на годовой факт ОФЗ */
+.bdr-plan-link {
+  font-size: 11px !important;
+}
+
+/* Подсказка формулы (пунктир под именем) */
+.bdr-formula-hint {
+  cursor: help;
+}
+
+/* ========== Условное форматирование (алерты) ========== */
+
+/* Ячейка с перерасходом */
+.bdr-cell-alert {
+  background-color: #fff1f0 !important;
+}
+
+/* Текст алерта */
+.bdr-cell-alert-text {
+  color: #cf1322;
+  font-weight: 600;
+}
+
+/* Иконка предупреждения */
+.bdr-alert-icon {
+  color: #ff4d4f;
+  font-size: 11px;
+  margin-right: 2px;
+}
+
 /* Адаптивность БДР */
 @media (max-width: 768px) {
   .bdr-overhead-indent {
@@ -501,6 +608,25 @@ body {
 
   .dashboard-kpi-row .ant-col {
     margin-bottom: 8px;
+  }
+
+  .bdr-kpi-dash-value {
+    font-size: 16px;
+  }
+  .bdr-kpi-dash-title {
+    font-size: 10px;
+  }
+  .bdr-tree-child-indent {
+    padding-left: 8px;
+  }
+}
+
+@media (max-width: 430px) {
+  .bdr-kpi-dash-value {
+    font-size: 14px;
+  }
+  .bdr-kpi-dash-icon {
+    font-size: 14px;
   }
 }
 
