@@ -11,6 +11,7 @@ import {
   CheckCircleOutlined,
   DashboardOutlined,
   SafetyCertificateOutlined,
+  FileSearchOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 
@@ -27,6 +28,7 @@ const menuItems: MenuItem[] = [
   { key: '/actual-execution', icon: <CheckCircleOutlined />, label: 'Факт. выполнение' },
   { key: '/guarantee', icon: <SafetyCertificateOutlined />, label: 'Контроль ГУ' },
   { key: '/dashboards', icon: <DashboardOutlined />, label: 'Дашборды' },
+  { key: '/dossier', icon: <FileSearchOutlined />, label: 'Досье договора' },
   {
     key: 'admin',
     icon: <SettingOutlined />,

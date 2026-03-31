@@ -503,3 +503,389 @@ body {
     margin-bottom: 8px;
   }
 }
+
+/* ========== Финансовое досье договора ========== */
+
+.dossier-page {
+  max-width: 1200px;
+  margin: 0 auto;
+}
+
+.dossier-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.dossier-page-title {
+  margin: 0 !important;
+}
+
+.dossier-content {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* Шапка */
+.dossier-header {
+  padding: 24px;
+  background: linear-gradient(135deg, #f0f5ff 0%, #e6f7ff 100%);
+  border-radius: 8px;
+  border: 1px solid #d6e4ff;
+}
+
+.dossier-header-icon {
+  font-size: 32px;
+  color: #1677ff;
+}
+
+.dossier-header-title {
+  margin: 0 !important;
+  line-height: 1.3 !important;
+}
+
+.dossier-header-subtitle {
+  font-size: 14px;
+}
+
+.dossier-header-status-col {
+  text-align: right;
+}
+
+.dossier-status-badge {
+  font-size: 14px;
+  padding: 4px 16px;
+  border-radius: 16px;
+  font-weight: 600;
+}
+
+.dossier-header-metrics {
+  margin-top: 20px;
+}
+
+.dossier-stat-block {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.dossier-stat-label {
+  font-size: 13px;
+}
+
+.dossier-stat-dates {
+  font-size: 20px;
+  font-weight: 600;
+  color: #262626;
+}
+
+.dossier-stat-note {
+  font-size: 12px;
+}
+
+/* Карточки-блоки */
+.dossier-card {
+  border-radius: 8px;
+}
+
+.dossier-card .ant-card-head {
+  background: #fafafa;
+  border-radius: 8px 8px 0 0;
+}
+
+.dossier-card--danger .ant-card-head {
+  background: #fff1f0;
+  border-bottom-color: #ffccc7;
+}
+
+/* Блок А — секции */
+.dossier-section {
+  margin-bottom: 20px;
+  padding-bottom: 16px;
+  border-bottom: 1px dashed #f0f0f0;
+}
+
+.dossier-section:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.dossier-section-title {
+  font-weight: 600;
+  font-size: 14px;
+  color: #262626;
+  margin-bottom: 8px;
+}
+
+.dossier-section-text {
+  margin-bottom: 4px !important;
+  font-size: 13px;
+}
+
+.dossier-term {
+  color: #1677ff;
+  cursor: help;
+  border-bottom: 1px dotted #1677ff;
+}
+
+.dossier-steps {
+  margin: 12px 0;
+}
+
+.dossier-lag-tag {
+  font-size: 13px;
+  padding: 4px 12px;
+  margin-top: 8px;
+}
+
+.dossier-optimization-tag {
+  cursor: help;
+  font-size: 13px;
+  padding: 4px 12px;
+}
+
+/* Блок Б — калькулятор */
+.dossier-calc-section {
+  padding: 16px;
+  background: #fafafa;
+  border-radius: 8px;
+  height: 100%;
+}
+
+.dossier-formula {
+  display: block;
+  margin-bottom: 16px;
+  font-family: 'Georgia', serif;
+  font-size: 13px;
+}
+
+.dossier-calc-field {
+  margin-bottom: 16px;
+}
+
+.dossier-calc-label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 13px;
+  color: #595959;
+}
+
+.dossier-calc-input {
+  width: 100% !important;
+}
+
+.dossier-calc-result {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: #fff;
+  border-radius: 6px;
+  margin-top: 8px;
+}
+
+.dossier-calc-value-warn {
+  color: #cf1322;
+  font-size: 14px;
+}
+
+.dossier-info-icon {
+  color: #1890ff;
+  cursor: help;
+  font-size: 12px;
+}
+
+/* Сводный итог */
+.dossier-summary-widget {
+  margin-top: 24px;
+  padding: 20px;
+  background: linear-gradient(135deg, #f6ffed 0%, #e6fffb 100%);
+  border-radius: 8px;
+  border: 1px solid #b7eb8f;
+}
+
+.dossier-payout-block {
+  padding: 12px 16px;
+  border-left: 4px solid #3f8600;
+  background: #fff;
+  border-radius: 0 8px 8px 0;
+}
+
+.dossier-payout-label {
+  display: block;
+  font-size: 12px;
+  margin-bottom: 4px;
+}
+
+.dossier-payout-value {
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+/* Блок В — БДР */
+.dossier-bdr-subtitle {
+  margin-bottom: 12px;
+}
+
+.dossier-bdr-icon {
+  font-size: 24px;
+}
+
+.dossier-bdr-icon--blue {
+  color: #1677ff;
+}
+
+.dossier-bdr-icon--orange {
+  color: #fa8c16;
+}
+
+.dossier-bdr-icon--purple {
+  color: #722ed1;
+}
+
+.dossier-bdr-icon--red {
+  color: #cf1322;
+}
+
+.dossier-bdr-icon--green {
+  color: #52c41a;
+}
+
+.dossier-bdr-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+
+.dossier-bdr-list-item {
+  padding: 12px 0 !important;
+}
+
+/* Блок Г — Риски */
+.dossier-risk-header-icon {
+  color: #cf1322;
+}
+
+.dossier-risk-table .ant-table-thead > tr > th {
+  background: #fff1f0 !important;
+  font-weight: 600;
+}
+
+.dossier-risk-row td {
+  border-bottom-color: #ffccc7 !important;
+}
+
+.dossier-risk-violation {
+  font-size: 13px;
+}
+
+.dossier-risk-rate-tag {
+  white-space: normal;
+  line-height: 1.4;
+}
+
+.dossier-risk-input {
+  width: 80px !important;
+}
+
+.dossier-risk-total-danger {
+  color: #cf1322;
+  font-size: 14px;
+}
+
+.dossier-risk-total-zero {
+  color: #8c8c8c;
+}
+
+.dossier-risk-summary-row td {
+  background: #fff1f0 !important;
+  font-weight: 600;
+}
+
+.dossier-risk-alert {
+  margin-top: 16px;
+}
+
+/* Адаптивность — мобильные устройства */
+@media (max-width: 430px) {
+  .dossier-header {
+    padding: 16px;
+  }
+
+  .dossier-header-icon {
+    font-size: 24px;
+  }
+
+  .dossier-header-title {
+    font-size: 16px !important;
+  }
+
+  .dossier-header-status-col {
+    text-align: left;
+    margin-top: 8px;
+  }
+
+  .dossier-stat-dates {
+    font-size: 16px;
+  }
+
+  .dossier-toolbar {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .dossier-payout-value {
+    font-size: 20px;
+  }
+
+  .dossier-steps {
+    overflow-x: auto;
+  }
+
+  .dossier-risk-table {
+    overflow-x: auto;
+  }
+
+  .dossier-calc-section {
+    padding: 12px;
+  }
+}
+
+/* Адаптивность — iPad */
+@media (min-width: 431px) and (max-width: 768px) {
+  .dossier-header-title {
+    font-size: 18px !important;
+  }
+
+  .dossier-payout-value {
+    font-size: 24px;
+  }
+
+  .dossier-header-status-col {
+    text-align: left;
+    margin-top: 8px;
+  }
+}
+
+/* Печать */
+@media print {
+  .dossier-toolbar {
+    display: none;
+  }
+
+  .dossier-card {
+    break-inside: avoid;
+    box-shadow: none !important;
+  }
+
+  .dossier-risk-input {
+    display: none;
+  }
+}
