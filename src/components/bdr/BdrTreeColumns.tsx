@@ -99,6 +99,28 @@ export const buildBdrTreeNameColumn = (
   render: (_: unknown, record: IBdrTreeRow) => {
     const formula = BDR_FORMULAS[record.rowCode];
     const nameContent = (() => {
+      // Секция-заголовок с кликабельной подстрокой (V. OPEX)
+      if (record.isSectionHeader && record.isClickable && record.subType) {
+        if (record.rowCode === 'fixed_expenses' && onOpenFixedPlan) {
+          return (
+            <strong className="bdr-tree-section-name">
+              <span className="bdr-clickable-name" onClick={() => onOpenSub(record.subType!)}>
+                {record.name}
+              </span>
+              {' '}
+              <span className="bdr-clickable-name bdr-plan-link" onClick={onOpenFixedPlan}>
+                [импорт]
+              </span>
+            </strong>
+          );
+        }
+        return (
+          <strong className="bdr-tree-section-name bdr-clickable-name" onClick={() => onOpenSub(record.subType!)}>
+            {record.name}
+          </strong>
+        );
+      }
+
       if (record.isSectionHeader) {
         return <strong className="bdr-tree-section-name">{record.name}</strong>;
       }
@@ -112,7 +134,7 @@ export const buildBdrTreeNameColumn = (
               </span>
               {' '}
               <span className="bdr-clickable-name bdr-plan-link" onClick={onOpenFixedPlan}>
-                [годовой факт]
+                [импорт]
               </span>
             </span>
           );
@@ -175,7 +197,7 @@ export const buildBdrTreeMonthColumns = (options: ITreeColumnsOptions): ColumnsT
             if (record.noPlan) return null;
             const value = record[`plan_month_${dk}`] as number;
             if (record.isPercent) return <span>{formatPercentValue(value)}</span>;
-            const readOnly = record.isCalculated || !!record.isPlanCalculated || !onUpdatePlan || record.isSectionHeader;
+            const readOnly = record.isCalculated || !!record.isPlanCalculated || !onUpdatePlan;
             return (
               <BddsEditableCell
                 value={value}
@@ -202,7 +224,7 @@ export const buildBdrTreeMonthColumns = (options: ITreeColumnsOptions): ColumnsT
           render: (_: unknown, record: IBdrTreeRow) => {
             const value = record[`fact_month_${dk}`] as number;
             if (record.isPercent) return <span>{formatPercentValue(value)}</span>;
-            const readOnly = record.isCalculated || !!record.isClickable || !onUpdateFact || record.isSectionHeader;
+            const readOnly = record.isCalculated || !!record.isClickable || !onUpdateFact;
             const formatted = (
               <BddsEditableCell
                 value={value}
