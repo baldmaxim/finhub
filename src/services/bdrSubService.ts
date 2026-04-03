@@ -87,7 +87,8 @@ export async function getSubTotalsByMonth(
     .select(useNds ? 'entry_date, amount, amount_without_nds' : 'entry_date, amount')
     .eq('sub_type', subType)
     .gte('entry_date', `${year}-01-01`)
-    .lte('entry_date', `${year}-12-31`);
+    .lte('entry_date', `${year}-12-31`)
+    .limit(10000);
 
   if (projectId) {
     query = query.eq('project_id', projectId);
@@ -115,7 +116,8 @@ export async function getMultiSubTotalsByMonth(
     .select('sub_type, entry_date, amount, amount_without_nds')
     .in('sub_type', subTypes)
     .gte('entry_date', `${year}-01-01`)
-    .lte('entry_date', `${year}-12-31`);
+    .lte('entry_date', `${year}-12-31`)
+    .limit(10000);
 
   if (projectId) {
     query = query.eq('project_id', projectId);
@@ -168,7 +170,8 @@ export async function getFixedExpensesTotalsByMonth(
     .select('entry_date, amount, description')
     .eq('sub_type', 'fixed_expenses')
     .gte('entry_date', `${year}-01-01`)
-    .lte('entry_date', `${year}-12-31`);
+    .lte('entry_date', `${year}-12-31`)
+    .limit(10000);
 
   if (projectId) {
     query = query.eq('project_id', projectId);

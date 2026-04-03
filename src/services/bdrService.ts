@@ -6,7 +6,8 @@ export async function getEntries(year: number, entryType: BdrEntryType, projectI
     .from('bdr_entries')
     .select('*')
     .eq('year', year)
-    .eq('entry_type', entryType);
+    .eq('entry_type', entryType)
+    .limit(10000);
 
   if (projectId) {
     query = query.eq('project_id', projectId);
@@ -62,7 +63,8 @@ export async function getSmrAllYearsTotal(projectId?: string): Promise<number> {
   let query = supabase
     .from('bdds_income_entries')
     .select('amount, month_key')
-    .in('work_type_code', SMR_CODES);
+    .in('work_type_code', SMR_CODES)
+    .limit(10000);
 
   if (projectId) {
     query = query.eq('project_id', projectId);
@@ -89,7 +91,8 @@ export async function getRevenueCumulativeBefore(
     .from('bdds_income_entries')
     .select('amount, month_key')
     .in('work_type_code', SMR_CODES)
-    .lt('month_key', maxMonthKey);
+    .lt('month_key', maxMonthKey)
+    .limit(10000);
 
   if (projectId) {
     smrQuery = smrQuery.eq('project_id', projectId);
@@ -107,7 +110,8 @@ export async function getRevenueCumulativeBefore(
   let ksQuery = supabase
     .from('actual_execution_entries')
     .select('ks_amount, month_key')
-    .lt('month_key', maxMonthKey);
+    .lt('month_key', maxMonthKey)
+    .limit(10000);
 
   if (projectId) {
     ksQuery = ksQuery.eq('project_id', projectId);
@@ -129,7 +133,8 @@ export async function getSmrTotalsByMonth(year: number, projectId?: string): Pro
     .from('bdds_income_entries')
     .select('work_type_code, month_key, amount')
     .like('month_key', `${year}-%`)
-    .in('work_type_code', SMR_CODES);
+    .in('work_type_code', SMR_CODES)
+    .limit(10000);
 
   if (projectId) {
     query = query.eq('project_id', projectId);
