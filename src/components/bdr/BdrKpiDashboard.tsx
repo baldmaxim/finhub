@@ -104,7 +104,7 @@ export const BdrKpiDashboard: FC<IProps> = ({ yearRows, onNzpClick }) => {
       onClick: !isOverbilling && nzpToRevenue > 10 ? onNzpClick : undefined,
     },
     {
-      title: 'Gross Margin',
+      title: 'Валовая рентабельность (Gross Margin)',
       value: fmtPct(grossMargin),
       tooltip: `(Выручка − Себестоимость) / Выручка. Итого факт: выручка ${fmtMln(revenueFact)}, себестоимость ${fmtMln(costFact)}`,
       icon: <PercentageOutlined />,
@@ -112,7 +112,7 @@ export const BdrKpiDashboard: FC<IProps> = ({ yearRows, onNzpClick }) => {
       bgColor: grossMargin >= 15 ? '#f6ffed' : grossMargin >= 5 ? '#fff7e6' : '#fff1f0',
     },
     {
-      title: 'Net Profit Margin',
+      title: 'Рентабельность по чистой прибыли (Net Profit Margin)',
       value: fmtPct(netProfitMargin),
       tooltip: `Чистая прибыль / Выручка. Итого факт: ${fmtMln(netProfitFact)}`,
       icon: <FundOutlined />,
@@ -120,7 +120,7 @@ export const BdrKpiDashboard: FC<IProps> = ({ yearRows, onNzpClick }) => {
       bgColor: netProfitMargin >= 5 ? '#f6ffed' : netProfitMargin >= 0 ? '#fff7e6' : '#fff1f0',
     },
     {
-      title: 'Labor Cost Ratio',
+      title: 'Доля ФОТ в себестоимости (Labor Cost Ratio)',
       value: fmtPct(laborCostRatio),
       tooltip: `Доля ФОТ в полной себестоимости. Итого факт: ФОТ ${fmtMln(laborFact)}, себестоимость ${fmtMln(costFact)}`,
       icon: <TeamOutlined />,
