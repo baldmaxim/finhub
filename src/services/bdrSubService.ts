@@ -1,6 +1,5 @@
 import { supabase } from '../config/supabase';
 import type { BdrSubEntry, BdrSubEntryFormData, BdrSubType } from '../types/bdr';
-import { NDS_SUB_TYPES } from '../types/bdr';
 import { BDDS_PLAN_SUB_TYPES } from '../utils/bdrConstants';
 
 function lastDayOfMonth(year: number, month: number): string {
@@ -81,27 +80,17 @@ export async function getSubTotalsByMonth(
   year: number,
   projectId?: string
 ): Promise<Record<number, number>> {
-  const useNds = NDS_SUB_TYPES.includes(subType);
-  let query = supabase
-    .from('bdr_sub_entries')
-    .select('entry_date, amount, amount_without_nds')
-    .eq('sub_type', subType)
-    .gte('entry_date', `${year}-01-01`)
-    .lte('entry_date', `${year}-12-31`)
-    .limit(10000);
+  const { data, error } = await supabase.rpc('bdr_sub_totals_by_month', {
+    p_sub_type: subType,
+    p_year: year,
+    p_project_id: projectId || null,
+  });
 
-  if (projectId) {
-    query = query.eq('project_id', projectId);
-  }
-
-  const { data, error } = await query;
   if (error) throw error;
 
   const totals: Record<number, number> = {};
-  for (const e of data) {
-    const month = new Date(e.entry_date).getMonth() + 1;
-    const val = useNds ? (Number(e.amount_without_nds) || Number(e.amount) || 0) : Number(e.amount);
-    totals[month] = (totals[month] || 0) + val;
+  for (const row of (data || [])) {
+    totals[row.month] = Number(row.total) || 0;
   }
   return totals;
 }
@@ -111,29 +100,19 @@ export async function getMultiSubTotalsByMonth(
   year: number,
   projectId?: string
 ): Promise<Record<string, Record<number, number>>> {
-  let query = supabase
-    .from('bdr_sub_entries')
-    .select('sub_type, entry_date, amount, amount_without_nds')
-    .in('sub_type', subTypes)
-    .gte('entry_date', `${year}-01-01`)
-    .lte('entry_date', `${year}-12-31`)
-    .limit(10000);
+  const { data, error } = await supabase.rpc('bdr_multi_sub_totals_by_month', {
+    p_sub_types: subTypes,
+    p_year: year,
+    p_project_id: projectId || null,
+  });
 
-  if (projectId) {
-    query = query.eq('project_id', projectId);
-  }
-
-  const { data, error } = await query;
   if (error) throw error;
 
   const result: Record<string, Record<number, number>> = {};
-  for (const e of data) {
-    const st = e.sub_type as string;
+  for (const row of (data || [])) {
+    const st = row.sub_type as string;
     if (!result[st]) result[st] = {};
-    const month = new Date(e.entry_date).getMonth() + 1;
-    const useNds = NDS_SUB_TYPES.includes(st as BdrSubType);
-    const val = useNds ? (Number(e.amount_without_nds) || Number(e.amount) || 0) : Number(e.amount);
-    result[st][month] = (result[st][month] || 0) + val;
+    result[st][row.month] = Number(row.total) || 0;
   }
   return result;
 }
@@ -165,28 +144,16 @@ export async function getFixedExpensesTotalsByMonth(
   year: number,
   projectId?: string
 ): Promise<Record<number, number>> {
-  let query = supabase
-    .from('bdr_sub_entries')
-    .select('entry_date, amount, description')
-    .eq('sub_type', 'fixed_expenses')
-    .gte('entry_date', `${year}-01-01`)
-    .lte('entry_date', `${year}-12-31`)
-    .limit(10000);
+  const { data, error } = await supabase.rpc('bdr_fixed_expenses_by_month', {
+    p_year: year,
+    p_project_id: projectId || null,
+  });
 
-  if (projectId) {
-    query = query.eq('project_id', projectId);
-  }
-
-  const { data, error } = await query;
   if (error) throw error;
 
   const totals: Record<number, number> = {};
-  for (const e of data) {
-    const month = new Date(e.entry_date).getMonth() + 1;
-    const amount = Number(e.amount) || 0;
-    const ofz = Number(e.description) || 0;
-    const value = ofz ? amount - (amount / ofz) : amount;
-    totals[month] = (totals[month] || 0) + value;
+  for (const row of (data || [])) {
+    totals[row.month] = Number(row.total) || 0;
   }
   return totals;
 }
