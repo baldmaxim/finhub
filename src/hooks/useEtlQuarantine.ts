@@ -1,19 +1,19 @@
 import { useState, useEffect, useCallback } from 'react';
 import * as etlService from '../services/etlService';
-import type { IEtlTransaction } from '../types/etl';
+import type { IEtlEntry } from '../types/etl';
 import type { Project } from '../types/projects';
 import type { BddsCategory } from '../types/bdds';
 import * as projectsService from '../services/projectsService';
 import { getCategories } from '../services/bddsService';
 
 interface IUseEtlQuarantineResult {
-  transactions: IEtlTransaction[];
+  entries: IEtlEntry[];
   projects: Project[];
   categories: BddsCategory[];
   loading: boolean;
   error: string | null;
-  resolveTransaction: (
-    transactionId: string,
+  resolveEntry: (
+    entryId: string,
     projectId: string,
     categoryId: string,
     saveRule: boolean
@@ -22,7 +22,7 @@ interface IUseEtlQuarantineResult {
 }
 
 export function useEtlQuarantine(): IUseEtlQuarantineResult {
-  const [transactions, setTransactions] = useState<IEtlTransaction[]>([]);
+  const [entries, setEntries] = useState<IEtlEntry[]>([]);
   const [projects, setProjects] = useState<Project[]>([]);
   const [categories, setCategories] = useState<BddsCategory[]>([]);
   const [loading, setLoading] = useState(true);
@@ -32,12 +32,12 @@ export function useEtlQuarantine(): IUseEtlQuarantineResult {
     try {
       setLoading(true);
       setError(null);
-      const [txData, projData, catData] = await Promise.all([
-        etlService.getTransactions('quarantine'),
+      const [entryData, projData, catData] = await Promise.all([
+        etlService.getEntries('quarantine'),
         projectsService.getProjects(),
         getCategories(),
       ]);
-      setTransactions(txData);
+      setEntries(entryData);
       setProjects(projData.filter((p) => p.is_active));
       setCategories(catData);
     } catch (err) {
@@ -51,21 +51,21 @@ export function useEtlQuarantine(): IUseEtlQuarantineResult {
     loadData();
   }, [loadData]);
 
-  const resolveTransaction = useCallback(
-    async (transactionId: string, projectId: string, categoryId: string, saveRule: boolean) => {
-      await etlService.manualRoute(transactionId, projectId, categoryId, saveRule);
+  const resolveEntry = useCallback(
+    async (entryId: string, projectId: string, categoryId: string, saveRule: boolean) => {
+      await etlService.manualRoute(entryId, projectId, categoryId, saveRule);
       await loadData();
     },
     [loadData]
   );
 
   return {
-    transactions,
+    entries,
     projects,
     categories,
     loading,
     error,
-    resolveTransaction,
+    resolveEntry,
     reload: loadData,
   };
 }

@@ -1,37 +1,27 @@
 import { supabase } from '../config/supabase';
-import type {
-  IEtlTransaction,
-  IEtlBankAccountMap,
-  IEtlContractMap,
-  IEtlCashflowItemMap,
-  IEtlPaymentMask,
-  EtlWalletType,
-} from '../types/etl';
+import type { IEtlEntry, IEtlContractMap, IEtlPaymentMask } from '../types/etl';
 
 const BATCH_SIZE = 500;
 
-// === Транзакции ===
+// === Записи (проводки) ===
 
-export async function getTransactions(
-  status?: string,
-  batchId?: string
-): Promise<IEtlTransaction[]> {
+export async function getEntries(status?: string, batchId?: string): Promise<IEtlEntry[]> {
   let query = supabase
-    .from('etl_1c_transactions')
+    .from('etl_1c_entries')
     .select('*')
     .order('doc_date', { ascending: false });
 
   if (status) query = query.eq('status', status);
   if (batchId) query = query.eq('import_batch_id', batchId);
 
-  const allData: IEtlTransaction[] = [];
+  const allData: IEtlEntry[] = [];
   let from = 0;
 
   while (true) {
     const { data, error } = await query.range(from, from + BATCH_SIZE - 1);
     if (error) throw error;
     if (!data || data.length === 0) break;
-    allData.push(...(data as IEtlTransaction[]));
+    allData.push(...(data as IEtlEntry[]));
     if (data.length < BATCH_SIZE) break;
     from += BATCH_SIZE;
   }
@@ -39,14 +29,24 @@ export async function getTransactions(
   return allData;
 }
 
-export async function insertTransactions(
-  transactions: Array<Omit<IEtlTransaction, 'id' | 'status' | 'routed_project_id' | 'routed_category_id' | 'routed_wallet_type' | 'route_method' | 'route_log' | 'imported_at' | 'routed_at' | 'created_at'>>
+export async function insertEntries(
+  entries: Array<{
+    doc_date: string;
+    document: string | null;
+    analytics_dt: string | null;
+    analytics_kt: string | null;
+    debit_account: string | null;
+    credit_account: string | null;
+    amount: number;
+    doc_type: string;
+    counterparty_name: string | null;
+    contract_name: string | null;
+    import_batch_id: string;
+  }>
 ): Promise<void> {
-  for (let i = 0; i < transactions.length; i += BATCH_SIZE) {
-    const batch = transactions.slice(i, i + BATCH_SIZE);
-    const { error } = await supabase
-      .from('etl_1c_transactions')
-      .insert(batch);
+  for (let i = 0; i < entries.length; i += BATCH_SIZE) {
+    const batch = entries.slice(i, i + BATCH_SIZE);
+    const { error } = await supabase.from('etl_1c_entries').insert(batch);
     if (error) throw error;
   }
 }
@@ -58,47 +58,17 @@ export async function routeBatch(batchId: string): Promise<{ routed: number; qua
 }
 
 export async function manualRoute(
-  transactionId: string,
+  entryId: string,
   projectId: string,
   categoryId: string,
   saveRule: boolean
 ): Promise<void> {
   const { error } = await supabase.rpc('etl_manual_route', {
-    p_transaction_id: transactionId,
+    p_entry_id: entryId,
     p_project_id: projectId,
     p_category_id: categoryId,
     p_save_rule: saveRule,
   });
-  if (error) throw error;
-}
-
-// === Маппинг банковских счетов ===
-
-export async function getBankAccountMaps(): Promise<IEtlBankAccountMap[]> {
-  const { data, error } = await supabase
-    .from('etl_1c_bank_account_map')
-    .select('*')
-    .order('account_name');
-  if (error) throw error;
-  return data as IEtlBankAccountMap[];
-}
-
-export async function upsertBankAccountMap(
-  guid1c: string,
-  accountName: string,
-  walletType: EtlWalletType
-): Promise<void> {
-  const { error } = await supabase
-    .from('etl_1c_bank_account_map')
-    .upsert(
-      { guid_1c: guid1c, account_name: accountName, wallet_type: walletType, updated_at: new Date().toISOString() },
-      { onConflict: 'guid_1c' }
-    );
-  if (error) throw error;
-}
-
-export async function deleteBankAccountMap(id: string): Promise<void> {
-  const { error } = await supabase.from('etl_1c_bank_account_map').delete().eq('id', id);
   if (error) throw error;
 }
 
@@ -108,66 +78,34 @@ export async function getContractMaps(): Promise<IEtlContractMap[]> {
   const { data, error } = await supabase
     .from('etl_1c_contract_map')
     .select('*')
-    .order('contract_name');
+    .order('counterparty_name');
   if (error) throw error;
   return data as IEtlContractMap[];
 }
 
 export async function upsertContractMap(
-  guid1c: string,
-  contractName: string,
-  counterpartyInn: string,
   counterpartyName: string,
-  projectId: string
+  contractName: string,
+  projectId: string,
+  note?: string
 ): Promise<void> {
   const { error } = await supabase
     .from('etl_1c_contract_map')
     .upsert(
       {
-        guid_1c: guid1c,
-        contract_name: contractName,
-        counterparty_inn: counterpartyInn,
         counterparty_name: counterpartyName,
+        contract_name: contractName,
         project_id: projectId,
+        note: note || null,
         updated_at: new Date().toISOString(),
       },
-      { onConflict: 'guid_1c' }
+      { onConflict: 'counterparty_name,contract_name' }
     );
   if (error) throw error;
 }
 
 export async function deleteContractMap(id: string): Promise<void> {
   const { error } = await supabase.from('etl_1c_contract_map').delete().eq('id', id);
-  if (error) throw error;
-}
-
-// === Маппинг статей ДДС ===
-
-export async function getCashflowItemMaps(): Promise<IEtlCashflowItemMap[]> {
-  const { data, error } = await supabase
-    .from('etl_1c_cashflow_item_map')
-    .select('*')
-    .order('item_name');
-  if (error) throw error;
-  return data as IEtlCashflowItemMap[];
-}
-
-export async function upsertCashflowItemMap(
-  guid1c: string,
-  itemName: string,
-  categoryId: string
-): Promise<void> {
-  const { error } = await supabase
-    .from('etl_1c_cashflow_item_map')
-    .upsert(
-      { guid_1c: guid1c, item_name: itemName, category_id: categoryId, updated_at: new Date().toISOString() },
-      { onConflict: 'guid_1c' }
-    );
-  if (error) throw error;
-}
-
-export async function deleteCashflowItemMap(id: string): Promise<void> {
-  const { error } = await supabase.from('etl_1c_cashflow_item_map').delete().eq('id', id);
   if (error) throw error;
 }
 

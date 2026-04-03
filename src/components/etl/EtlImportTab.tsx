@@ -4,7 +4,7 @@ import { Button, Table, Tag, message, Card, Space, Statistic, Row, Col, Typograp
 import { ReloadOutlined, CloudUploadOutlined } from '@ant-design/icons';
 import { useEtlImport } from '../../hooks/useEtlImport';
 import * as etlService from '../../services/etlService';
-import type { IEtlTransaction } from '../../types/etl';
+import type { IEtlEntry } from '../../types/etl';
 
 const STATUS_MAP: Record<string, { color: string; label: string }> = {
   pending: { color: 'default', label: 'Ожидает' },
@@ -14,35 +14,31 @@ const STATUS_MAP: Record<string, { color: string; label: string }> = {
 };
 
 const DOC_TYPE_MAP: Record<string, string> = {
-  receipt: 'Поступление на р/с',
-  debt_correction: 'Корректировка долга',
+  receipt: 'Поступление',
+  debt_correction: 'Корр. долга (РП)',
+  other: 'Прочее',
 };
 
 export const EtlImportTab: FC = () => {
   const { importing, lastResult, error, importFile } = useEtlImport();
-  const [transactions, setTransactions] = useState<IEtlTransaction[]>([]);
-  const [loadingTx, setLoadingTx] = useState(false);
+  const [entries, setEntries] = useState<IEtlEntry[]>([]);
+  const [loadingEntries, setLoadingEntries] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const loadTransactions = async () => {
-    setLoadingTx(true);
+  const loadEntries = async () => {
+    setLoadingEntries(true);
     try {
-      const data = await etlService.getTransactions();
-      setTransactions(data);
+      const data = await etlService.getEntries();
+      setEntries(data);
     } catch {
-      message.error('Ошибка загрузки транзакций');
+      message.error('Ошибка загрузки');
     } finally {
-      setLoadingTx(false);
+      setLoadingEntries(false);
     }
   };
 
-  useEffect(() => {
-    loadTransactions();
-  }, []);
-
-  useEffect(() => {
-    if (lastResult) loadTransactions();
-  }, [lastResult]);
+  useEffect(() => { loadEntries(); }, []);
+  useEffect(() => { if (lastResult) loadEntries(); }, [lastResult]);
 
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -50,7 +46,7 @@ export const EtlImportTab: FC = () => {
     const result = await importFile(file);
     if (result) {
       message.success(
-        `Импорт завершён: ${result.total} транзакций, ${result.routed} разнесено, ${result.quarantine} в карантине`
+        `Импорт: ${result.total} проводок, ${result.routed} разнесено, ${result.quarantine} в карантине`
       );
     }
     if (fileInputRef.current) fileInputRef.current.value = '';
@@ -61,14 +57,14 @@ export const EtlImportTab: FC = () => {
       title: 'Дата',
       dataIndex: 'doc_date',
       key: 'doc_date',
-      width: 100,
+      width: 90,
       render: (v: string) => v ? new Date(v).toLocaleDateString('ru-RU') : '—',
     },
     {
       title: 'Тип',
       dataIndex: 'doc_type',
       key: 'doc_type',
-      width: 160,
+      width: 130,
       render: (v: string) => DOC_TYPE_MAP[v] || v,
     },
     {
@@ -92,16 +88,16 @@ export const EtlImportTab: FC = () => {
       ellipsis: true,
     },
     {
-      title: 'Назначение',
-      dataIndex: 'payment_purpose',
-      key: 'payment_purpose',
-      ellipsis: true,
+      title: 'Дт счёт',
+      dataIndex: 'debit_account',
+      key: 'debit_account',
+      width: 70,
     },
     {
       title: 'Статус',
       dataIndex: 'status',
       key: 'status',
-      width: 120,
+      width: 110,
       render: (v: string) => {
         const s = STATUS_MAP[v] || { color: 'default', label: v };
         return <Tag color={s.color}>{s.label}</Tag>;
@@ -111,16 +107,16 @@ export const EtlImportTab: FC = () => {
       title: 'Метод',
       dataIndex: 'route_method',
       key: 'route_method',
-      width: 100,
+      width: 80,
       render: (v: string | null) => v || '—',
     },
   ];
 
   const stats = {
-    total: transactions.length,
-    routed: transactions.filter((t) => t.status === 'routed').length,
-    quarantine: transactions.filter((t) => t.status === 'quarantine').length,
-    manual: transactions.filter((t) => t.status === 'manual').length,
+    total: entries.length,
+    routed: entries.filter((t) => t.status === 'routed').length,
+    quarantine: entries.filter((t) => t.status === 'quarantine').length,
+    manual: entries.filter((t) => t.status === 'manual').length,
   };
 
   return (
@@ -154,9 +150,9 @@ export const EtlImportTab: FC = () => {
           loading={importing}
           onClick={() => fileInputRef.current?.click()}
         >
-          Импорт из 1С (Excel)
+          Импорт карточки сч. 62
         </Button>
-        <Button icon={<ReloadOutlined />} onClick={loadTransactions} loading={loadingTx}>
+        <Button icon={<ReloadOutlined />} onClick={loadEntries} loading={loadingEntries}>
           Обновить
         </Button>
       </Space>
@@ -168,12 +164,12 @@ export const EtlImportTab: FC = () => {
       )}
 
       <Table
-        dataSource={transactions}
+        dataSource={entries}
         columns={columns}
         rowKey="id"
         size="small"
         pagination={{ pageSize: 50, showSizeChanger: true, showTotal: (t) => `Всего: ${t}` }}
-        loading={loadingTx}
+        loading={loadingEntries}
         scroll={{ x: 900 }}
       />
     </div>

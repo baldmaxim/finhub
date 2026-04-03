@@ -3,7 +3,7 @@ import type { FC } from 'react';
 import { Table, Select, Button, Tag, Checkbox, Space, message, Typography } from 'antd';
 import { CheckOutlined, ReloadOutlined } from '@ant-design/icons';
 import { useEtlQuarantine } from '../../hooks/useEtlQuarantine';
-import type { IEtlTransaction } from '../../types/etl';
+import type { IEtlEntry } from '../../types/etl';
 
 interface IResolveState {
   projectId: string | null;
@@ -12,7 +12,7 @@ interface IResolveState {
 }
 
 export const EtlQuarantineTab: FC = () => {
-  const { transactions, projects, categories, loading, error, resolveTransaction, reload } = useEtlQuarantine();
+  const { entries, projects, categories, loading, error, resolveEntry, reload } = useEtlQuarantine();
   const [resolveStates, setResolveStates] = useState<Record<string, IResolveState>>({});
   const [resolving, setResolving] = useState<string | null>(null);
 
@@ -26,19 +26,19 @@ export const EtlQuarantineTab: FC = () => {
     }));
   };
 
-  const handleResolve = async (txId: string) => {
-    const state = getState(txId);
+  const handleResolve = async (entryId: string) => {
+    const state = getState(entryId);
     if (!state.projectId || !state.categoryId) {
       message.warning('Выберите проект и статью БДДС');
       return;
     }
-    setResolving(txId);
+    setResolving(entryId);
     try {
-      await resolveTransaction(txId, state.projectId, state.categoryId, state.saveRule);
-      message.success('Транзакция разнесена');
+      await resolveEntry(entryId, state.projectId, state.categoryId, state.saveRule);
+      message.success('Проводка разнесена');
       setResolveStates((prev) => {
         const next = { ...prev };
-        delete next[txId];
+        delete next[entryId];
         return next;
       });
     } catch {
@@ -48,7 +48,6 @@ export const EtlQuarantineTab: FC = () => {
     }
   };
 
-  // Только leaf-категории (без parent_id != null тоже подходят — берём все не-calculated)
   const leafCategories = categories.filter((c) => !c.is_calculated);
 
   const columns = [
@@ -56,14 +55,14 @@ export const EtlQuarantineTab: FC = () => {
       title: 'Дата',
       dataIndex: 'doc_date',
       key: 'doc_date',
-      width: 90,
+      width: 85,
       render: (v: string) => v ? new Date(v).toLocaleDateString('ru-RU') : '—',
     },
     {
       title: 'Сумма',
       dataIndex: 'amount',
       key: 'amount',
-      width: 120,
+      width: 110,
       align: 'right' as const,
       render: (v: number) => v?.toLocaleString('ru-RU', { minimumFractionDigits: 2 }),
     },
@@ -75,26 +74,36 @@ export const EtlQuarantineTab: FC = () => {
       ellipsis: true,
     },
     {
-      title: 'Назначение',
-      dataIndex: 'payment_purpose',
-      key: 'payment_purpose',
+      title: 'Договор',
+      dataIndex: 'contract_name',
+      key: 'contract_name',
+      width: 160,
       ellipsis: true,
+    },
+    {
+      title: 'Документ',
+      dataIndex: 'document',
+      key: 'document',
+      ellipsis: true,
+      render: (v: string | null) => (
+        <Typography.Text style={{ fontSize: 11 }}>{v || '—'}</Typography.Text>
+      ),
     },
     {
       title: 'Лог',
       dataIndex: 'route_log',
       key: 'route_log',
-      width: 200,
+      width: 140,
       ellipsis: true,
       render: (v: string | null) => (
-        <Typography.Text type="secondary" style={{ fontSize: 12 }}>{v || '—'}</Typography.Text>
+        <Typography.Text type="secondary" style={{ fontSize: 11 }}>{v || '—'}</Typography.Text>
       ),
     },
     {
       title: 'Проект',
       key: 'project',
-      width: 180,
-      render: (_: unknown, record: IEtlTransaction) => (
+      width: 170,
+      render: (_: unknown, record: IEtlEntry) => (
         <Select
           size="small"
           placeholder="Проект"
@@ -112,8 +121,8 @@ export const EtlQuarantineTab: FC = () => {
     {
       title: 'Статья БДДС',
       key: 'category',
-      width: 250,
-      render: (_: unknown, record: IEtlTransaction) => (
+      width: 220,
+      render: (_: unknown, record: IEtlEntry) => (
         <Select
           size="small"
           placeholder="Статья БДДС"
@@ -129,36 +138,31 @@ export const EtlQuarantineTab: FC = () => {
       ),
     },
     {
-      title: 'Правило',
+      title: 'Запомнить',
       key: 'save_rule',
       width: 80,
-      render: (_: unknown, record: IEtlTransaction) => (
+      render: (_: unknown, record: IEtlEntry) => (
         <Checkbox
           checked={getState(record.id).saveRule}
           onChange={(e) => updateState(record.id, { saveRule: e.target.checked })}
-        >
-          <Typography.Text style={{ fontSize: 11 }}>Запомнить</Typography.Text>
-        </Checkbox>
+        />
       ),
     },
     {
       title: '',
       key: 'action',
-      width: 90,
-      render: (_: unknown, record: IEtlTransaction) => {
+      width: 60,
+      render: (_: unknown, record: IEtlEntry) => {
         const state = getState(record.id);
-        const ready = state.projectId && state.categoryId;
         return (
           <Button
             type="primary"
             size="small"
             icon={<CheckOutlined />}
-            disabled={!ready}
+            disabled={!state.projectId || !state.categoryId}
             loading={resolving === record.id}
             onClick={() => handleResolve(record.id)}
-          >
-            ОК
-          </Button>
+          />
         );
       },
     },
@@ -167,7 +171,7 @@ export const EtlQuarantineTab: FC = () => {
   return (
     <div>
       <Space style={{ marginBottom: 16 }}>
-        <Tag color="orange">{transactions.length} транзакций в карантине</Tag>
+        <Tag color="orange">{entries.length} проводок в карантине</Tag>
         <Button icon={<ReloadOutlined />} onClick={reload} loading={loading} size="small">
           Обновить
         </Button>
@@ -180,14 +184,14 @@ export const EtlQuarantineTab: FC = () => {
       )}
 
       <Table
-        dataSource={transactions}
+        dataSource={entries}
         columns={columns}
         rowKey="id"
         size="small"
         pagination={{ pageSize: 20 }}
         loading={loading}
         scroll={{ x: 1400 }}
-        locale={{ emptyText: 'Нет транзакций в карантине' }}
+        locale={{ emptyText: 'Нет проводок в карантине' }}
       />
     </div>
   );

@@ -3,62 +3,8 @@ import * as XLSX from 'xlsx';
 import * as etlService from '../services/etlService';
 import type { EtlDocType, IEtlImportResult } from '../types/etl';
 
-/** Колонки отчёта 1С по 62 счету — маппинг заголовков Excel на поля транзакции */
-const COLUMN_ALIASES: Record<string, string> = {
-  // Дата
-  'дата': 'doc_date',
-  'дата документа': 'doc_date',
-  'date': 'doc_date',
-  // Сумма
-  'сумма': 'amount',
-  'сумма документа': 'amount',
-  'amount': 'amount',
-  // Контрагент
-  'инн': 'counterparty_inn',
-  'инн контрагента': 'counterparty_inn',
-  'контрагент': 'counterparty_name',
-  'заказчик': 'counterparty_name',
-  'плательщик': 'counterparty_name',
-  // Договор
-  'guid договора': 'contract_guid',
-  'договор guid': 'contract_guid',
-  'договор': 'contract_name',
-  'наименование договора': 'contract_name',
-  // Банковский счёт
-  'guid банковского счета': 'bank_account_guid',
-  'банковский счет guid': 'bank_account_guid',
-  'счет организации': 'bank_account_name',
-  'банковский счет': 'bank_account_name',
-  'расчетный счет': 'bank_account_name',
-  // Статья ДДС
-  'guid статьи ддс': 'cashflow_item_guid',
-  'статья ддс guid': 'cashflow_item_guid',
-  'статья ддс': 'cashflow_item_name',
-  'статья движения денежных средств': 'cashflow_item_name',
-  // Назначение платежа
-  'назначение платежа': 'payment_purpose',
-  'назначение': 'payment_purpose',
-  'основание': 'payment_purpose',
-  // Тип документа
-  'вид документа': 'doc_type_raw',
-  'тип документа': 'doc_type_raw',
-  'документ': 'doc_type_raw',
-  // Субподряд (для корректировок долга)
-  'guid договора субподрядчика': 'sub_contract_guid',
-  'договор субподрядчика': 'sub_contract_name',
-  'договор с субподрядчиком': 'sub_contract_name',
-};
-
-function normalizeHeader(header: string): string {
-  return header.toLowerCase().trim().replace(/\s+/g, ' ');
-}
-
-function parseDocType(raw: string): EtlDocType {
-  const lower = raw.toLowerCase();
-  if (lower.includes('корректировк') || lower.includes('взаимозачет') || lower.includes('зачет')) {
-    return 'debt_correction';
-  }
-  return 'receipt';
+function normalizeHeader(h: string): string {
+  return h.toLowerCase().trim().replace(/\s+/g, ' ');
 }
 
 function parseDate(val: unknown): string | null {
@@ -72,22 +18,157 @@ function parseDate(val: unknown): string | null {
     return d.toISOString().slice(0, 10);
   }
   const str = String(val ?? '').trim();
-  // DD.MM.YYYY
   const dmy = str.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})$/);
-  if (dmy) {
-    return `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
-  }
-  // YYYY-MM-DD
+  if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
   const iso = str.match(/^(\d{4})-(\d{2})-(\d{2})/);
   if (iso) return `${iso[1]}-${iso[2]}-${iso[3]}`;
   return null;
 }
 
 function parseAmount(val: unknown): number {
-  if (typeof val === 'number') return val;
-  const str = String(val ?? '').replace(/\s/g, '').replace(',', '.');
+  if (typeof val === 'number') return Math.abs(val);
+  const str = String(val ?? '')
+    .replace(/\s/g, '')
+    .replace(',', '.')
+    .replace(/[КкДд]$/, '');
   const num = parseFloat(str);
-  return isNaN(num) ? 0 : num;
+  return isNaN(num) ? 0 : Math.abs(num);
+}
+
+function detectDocType(debitAccount: string): EtlDocType {
+  const acc = debitAccount.trim();
+  if (acc.startsWith('51') || acc.startsWith('52') || acc.startsWith('55')) return 'receipt';
+  if (acc.startsWith('60') || acc.startsWith('76')) return 'debt_correction';
+  return 'other';
+}
+
+/**
+ * Парсинг поля «Аналитика Кт» для извлечения контрагента и договора.
+ * Пример: «СЗ ГАЛС-ФРИДРИХА ЭНГЕЛЬСА ООО ДГ №165/9/2024 от 26.07.24, Фридриха...»
+ * Контрагент: всё до «ДГ №» или «Договор» или «Дог.»
+ * Договор: «ДГ №165/9/2024 от 26.07.24» (до запятой или конца строки)
+ */
+function parseAnalyticsKt(text: string): { counterparty: string; contract: string } {
+  const trimmed = text.trim();
+
+  // Ищем начало договора
+  const contractMatch = trimmed.match(/(ДГ\s*№[^,\n]+|Договор\s*№[^,\n]+|Дог\.\s*№[^,\n]+)/i);
+  if (contractMatch) {
+    const contractStart = trimmed.indexOf(contractMatch[0]);
+    const counterparty = trimmed.slice(0, contractStart).trim().replace(/\s+/g, ' ');
+    const contract = contractMatch[0].trim();
+    return { counterparty, contract };
+  }
+
+  // Если договор не найден — берём первую строку как контрагента
+  const firstLine = trimmed.split('\n')[0].trim();
+  return { counterparty: firstLine, contract: '' };
+}
+
+interface IColumnMapping {
+  docDate: number;
+  document: number;
+  analyticsDt: number;
+  analyticsKt: number;
+  debitAccount: number;
+  creditAccount: number;
+  creditAmount: number;
+}
+
+/**
+ * Определяем колонки по двухуровневым заголовкам:
+ * Row 0: ... | Дебет |       | Кредит |        | ...
+ * Row 1: ... | Счет  | (sum) | Счет   | (sum)  | ...
+ */
+function detectColumns(sheet: XLSX.WorkSheet): { mapping: IColumnMapping; dataStartRow: number } | null {
+  const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1');
+  const maxScanRow = Math.min(range.s.r + 10, range.e.r);
+
+  // Ищем строку с «Период» или «Дата»
+  let headerRow = -1;
+  for (let r = range.s.r; r <= maxScanRow; r++) {
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      const cell = sheet[XLSX.utils.encode_cell({ r, c })];
+      if (cell && normalizeHeader(String(cell.v || cell.w || '')) === 'период') {
+        headerRow = r;
+        break;
+      }
+      if (cell && normalizeHeader(String(cell.v || cell.w || '')) === 'дата') {
+        headerRow = r;
+        break;
+      }
+    }
+    if (headerRow >= 0) break;
+  }
+
+  if (headerRow < 0) return null;
+
+  // Читаем заголовки первой строки (headerRow) и второй (headerRow+1)
+  const mapping: Partial<IColumnMapping> = {};
+
+  for (let c = range.s.c; c <= range.e.c; c++) {
+    const cell0 = sheet[XLSX.utils.encode_cell({ r: headerRow, c })];
+    const cell1 = sheet[XLSX.utils.encode_cell({ r: headerRow + 1, c })];
+    const h0 = normalizeHeader(String(cell0?.v ?? cell0?.w ?? ''));
+    const h1 = normalizeHeader(String(cell1?.v ?? cell1?.w ?? ''));
+
+    if (h0 === 'период' || h0 === 'дата') mapping.docDate = c;
+    if (h0 === 'документ') mapping.document = c;
+    if (h0 === 'аналитика дт') mapping.analyticsDt = c;
+    if (h0 === 'аналитика кт') mapping.analyticsKt = c;
+    if (h0 === 'текущее сальдо' || h0 === 'текущеесальдо') continue;
+
+    // Двухуровневые: «Дебет»→«Счет», «Кредит»→«Счет»/сумма
+    if (h0 === 'дебет' && h1 === 'счет') mapping.debitAccount = c;
+    if (h0 === 'кредит' && h1 === 'счет') mapping.creditAccount = c;
+
+    // Колонка суммы кредита — следующая после «Кредит Счет»
+    if (h0 === 'кредит' && h1 !== 'счет' && mapping.creditAccount !== undefined && mapping.creditAmount === undefined) {
+      mapping.creditAmount = c;
+    }
+  }
+
+  // Fallback: если «Кредит» — единственная колонка (без подстроки «Счет»)
+  if (mapping.creditAmount === undefined) {
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      const cell0 = sheet[XLSX.utils.encode_cell({ r: headerRow, c })];
+      const h0 = normalizeHeader(String(cell0?.v ?? cell0?.w ?? ''));
+      if (h0 === 'кредит' && c !== mapping.creditAccount) {
+        mapping.creditAmount = c;
+        break;
+      }
+    }
+  }
+
+  if (mapping.docDate === undefined || mapping.creditAmount === undefined) return null;
+
+  return {
+    mapping: {
+      docDate: mapping.docDate ?? -1,
+      document: mapping.document ?? -1,
+      analyticsDt: mapping.analyticsDt ?? -1,
+      analyticsKt: mapping.analyticsKt ?? -1,
+      debitAccount: mapping.debitAccount ?? -1,
+      creditAccount: mapping.creditAccount ?? -1,
+      creditAmount: mapping.creditAmount,
+    },
+    dataStartRow: headerRow + 2, // после двух строк заголовков
+  };
+}
+
+function getCellString(sheet: XLSX.WorkSheet, r: number, c: number): string {
+  if (c < 0) return '';
+  const cell = sheet[XLSX.utils.encode_cell({ r, c })];
+  if (!cell) return '';
+  return String(cell.w ?? cell.v ?? '').trim();
+}
+
+function getCellRaw(sheet: XLSX.WorkSheet, r: number, c: number): unknown {
+  if (c < 0) return undefined;
+  const cell = sheet[XLSX.utils.encode_cell({ r, c })];
+  if (!cell) return undefined;
+  if (cell.t === 'd' && cell.v instanceof Date) return cell.v;
+  return cell.v ?? cell.w;
 }
 
 interface IUseEtlImportResult {
@@ -111,90 +192,78 @@ export function useEtlImport(): IUseEtlImportResult {
       const buffer = await file.arrayBuffer();
       const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array', cellDates: true });
       const sheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet);
+      const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1');
 
-      if (jsonData.length === 0) {
-        throw new Error('Файл пуст или не содержит данных');
+      const detected = detectColumns(sheet);
+      if (!detected) {
+        throw new Error('Не удалось определить колонки. Ожидается карточка счета 62 с колонками: Период, Документ, Аналитика Дт/Кт, Дебет Счет, Кредит Счет, Кредит сумма');
       }
 
-      // Определяем маппинг колонок
-      const headers = Object.keys(jsonData[0]);
-      const columnMap: Record<string, string> = {};
-
-      for (const header of headers) {
-        const normalized = normalizeHeader(header);
-        const field = COLUMN_ALIASES[normalized];
-        if (field) {
-          columnMap[header] = field;
-        }
-      }
-
-      if (!Object.values(columnMap).includes('amount')) {
-        throw new Error('Не найдена колонка "Сумма" в файле');
-      }
-      if (!Object.values(columnMap).includes('doc_date')) {
-        throw new Error('Не найдена колонка "Дата" в файле');
-      }
-
-      // Генерируем batch ID
+      const { mapping: col, dataStartRow } = detected;
       const batchId = crypto.randomUUID();
+      const entries: Array<Parameters<typeof etlService.insertEntries>[0][0]> = [];
+      const skipped: string[] = [];
 
-      // Парсим строки
-      const transactions: Array<Record<string, unknown>> = [];
-      const errors: string[] = [];
+      for (let r = dataStartRow; r <= range.e.r; r++) {
+        // Пропускаем строки «Сальдо на начало/конец», «Итого», пустые
+        const firstCell = getCellString(sheet, r, col.docDate);
+        if (!firstCell) continue;
+        const lower = firstCell.toLowerCase();
+        if (lower.includes('сальдо') || lower.includes('итого') || lower.includes('обороты')) continue;
 
-      for (let i = 0; i < jsonData.length; i++) {
-        const row = jsonData[i];
-        const tx: Record<string, unknown> = {
-          import_batch_id: batchId,
-        };
-
-        let docTypeRaw = '';
-
-        for (const [excelCol, field] of Object.entries(columnMap)) {
-          const val = row[excelCol];
-          if (field === 'doc_date') {
-            const date = parseDate(val);
-            if (!date) {
-              errors.push(`Строка ${i + 2}: невалидная дата "${val}"`);
-              continue;
-            }
-            tx.doc_date = date;
-          } else if (field === 'amount') {
-            tx.amount = parseAmount(val);
-          } else if (field === 'doc_type_raw') {
-            docTypeRaw = String(val ?? '');
-          } else {
-            tx[field] = val !== undefined && val !== null ? String(val).trim() : null;
-          }
+        const docDate = parseDate(getCellRaw(sheet, r, col.docDate));
+        if (!docDate) {
+          skipped.push(`Строка ${r + 1}: невалидная дата "${firstCell}"`);
+          continue;
         }
 
-        if (!tx.doc_date) continue;
-        if (!tx.amount || tx.amount === 0) continue;
+        const amount = parseAmount(getCellRaw(sheet, r, col.creditAmount));
+        if (amount === 0) continue; // нулевые записи пропускаем
 
-        tx.doc_type = docTypeRaw ? parseDocType(docTypeRaw) : 'receipt';
+        const document = getCellString(sheet, r, col.document);
+        const analyticsDt = getCellString(sheet, r, col.analyticsDt);
+        const analyticsKt = getCellString(sheet, r, col.analyticsKt);
+        const debitAccount = getCellString(sheet, r, col.debitAccount);
+        const creditAccount = getCellString(sheet, r, col.creditAccount);
 
-        transactions.push(tx);
+        const docType = detectDocType(debitAccount);
+
+        // Парсим контрагента и договор из Аналитика Кт
+        const parsed = analyticsKt ? parseAnalyticsKt(analyticsKt) : { counterparty: '', contract: '' };
+
+        entries.push({
+          doc_date: docDate,
+          document: document || null,
+          analytics_dt: analyticsDt || null,
+          analytics_kt: analyticsKt || null,
+          debit_account: debitAccount || null,
+          credit_account: creditAccount || null,
+          amount,
+          doc_type: docType,
+          counterparty_name: parsed.counterparty || null,
+          contract_name: parsed.contract || null,
+          import_batch_id: batchId,
+        });
       }
 
-      if (transactions.length === 0) {
+      if (entries.length === 0) {
         throw new Error(
-          errors.length > 0
-            ? `Не удалось распарсить строки. ${errors.slice(0, 3).join('; ')}`
-            : 'Нет валидных строк для импорта'
+          skipped.length > 0
+            ? `Нет валидных строк. ${skipped.slice(0, 3).join('; ')}`
+            : 'Файл не содержит данных или формат не распознан'
         );
       }
 
-      // Вставляем транзакции
-      await etlService.insertTransactions(
-        transactions as Parameters<typeof etlService.insertTransactions>[0]
-      );
+      if (skipped.length > 0) {
+        console.warn('[ETL] Пропущено строк:', skipped);
+      }
 
-      // Запускаем маршрутизацию батча
+      // Вставляем и маршрутизируем
+      await etlService.insertEntries(entries);
       const routeResult = await etlService.routeBatch(batchId);
 
       const result: IEtlImportResult = {
-        total: transactions.length,
+        total: entries.length,
         routed: routeResult.routed,
         quarantine: routeResult.quarantine,
         batchId,
