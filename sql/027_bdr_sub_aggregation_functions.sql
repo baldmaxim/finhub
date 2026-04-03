@@ -9,7 +9,7 @@ CREATE OR REPLACE FUNCTION bdr_sub_totals_by_month(
 RETURNS TABLE(month INT, total NUMERIC) AS $$
   SELECT
     EXTRACT(MONTH FROM entry_date)::INT AS month,
-    SUM(COALESCE(amount_without_nds, amount)) AS total
+    SUM(CASE WHEN amount_without_nds IS NOT NULL AND amount_without_nds <> 0 THEN amount_without_nds ELSE amount END) AS total
   FROM bdr_sub_entries
   WHERE sub_type = p_sub_type
     AND entry_date >= (p_year || '-01-01')::DATE
@@ -29,7 +29,7 @@ RETURNS TABLE(sub_type TEXT, month INT, total NUMERIC) AS $$
   SELECT
     sub_type,
     EXTRACT(MONTH FROM entry_date)::INT AS month,
-    SUM(COALESCE(amount_without_nds, amount)) AS total
+    SUM(CASE WHEN amount_without_nds IS NOT NULL AND amount_without_nds <> 0 THEN amount_without_nds ELSE amount END) AS total
   FROM bdr_sub_entries
   WHERE sub_type = ANY(p_sub_types)
     AND entry_date >= (p_year || '-01-01')::DATE
