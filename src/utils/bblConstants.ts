@@ -22,12 +22,14 @@ export const BBL_ROWS: BblRowDef[] = [
 
   // II. Оборотные активы
   { code: 'current_total', name: 'Оборотные активы', isSemiBold: true, isCalculated: true, isSectionTotal: true },
-  { code: 'cash_total', name: 'Денежные средства', isChild: true, isCalculated: true, isLinked: true, linkedSource: 'БДДС: Остаток на конец периода' },
-  { code: 'cash_rs', name: 'на расчётных счетах (р/с)', isChild: true, isCalculated: true, isLinked: true, linkedSource: 'БДДС: Остаток на р/с на конец' },
-  { code: 'cash_obs', name: 'на ОБС (целевой)', isChild: true, isCalculated: true, isLinked: true, linkedSource: 'БДДС: Остаток на ОБС на конец' },
-  { code: 'receivables', name: 'Дебиторская задолженность', isChild: true, isCalculated: true, isLinked: true, linkedSource: 'Входящее + КС-2 (БДР) − Поступления (БДДС)' },
-  { code: 'inventory_wip', name: 'Запасы и НЗП', isChild: true, isCalculated: true, isLinked: true, linkedSource: 'БДР: Выполнение − КС-2 с Заказчиком (нарастающий)' },
-  { code: 'prepaid_expenses', name: 'Авансы выданные', isChild: true },
+  { code: 'cash_total', name: 'Денежные средства', isChild: true, isCalculated: true, isLinked: true, linkedSource: 'БДДС: Остаток на конец периода (р/с + ОБС)' },
+  { code: 'cash_rs', name: 'на расчётных счетах (р/с)', isChild: true, isCalculated: true, isLinked: true, linkedSource: 'БДДС → Остаток на расчётных счетах на конец периода' },
+  { code: 'cash_obs', name: 'на ОБС (целевой)', isChild: true, isCalculated: true, isLinked: true, linkedSource: 'БДДС → Остаток на ОБС на конец периода' },
+  { code: 'receivables', name: 'Дебиторская задолженность', isChild: true, isCalculated: true, isLinked: true, linkedSource: 'Σ детализации: КС-2 + Гарантийные удержания' },
+  { code: 'receivables_ks2', name: 'Задолженность Заказчика по КС-2', isChild: true, isCalculated: true, isLinked: true, linkedSource: 'Входящее + КС-2 с Заказчиком (БДР) − Поступления (БДДС)' },
+  { code: 'receivables_retentions', name: 'Гарантийные удержания к получению', isChild: true },
+  { code: 'inventory_wip', name: 'Запасы и НЗП', isChild: true, isCalculated: true, isLinked: true, linkedSource: 'БДР → Выполнение (КС-2 внутренняя) − КС-2 с Заказчиком (нарастающий)' },
+  { code: 'prepaid_expenses', name: 'Авансы выданные (Субподрядчикам)', isChild: true, isCalculated: true, isLinked: true, linkedSource: 'БДДС → Авансы субподрядчикам − БДР → Субподряд (Факт КС-2)' },
   { code: 'other_current_assets', name: 'Прочие оборотные активы', isChild: true },
 
   // ИТОГО АКТИВЫ
@@ -36,8 +38,10 @@ export const BBL_ROWS: BblRowDef[] = [
   // === ПАССИВЫ ===
   // III. Краткосрочные обязательства
   { code: 'current_liabilities_total', name: 'Краткосрочные обязательства', isSemiBold: true, isCalculated: true, isSectionTotal: true },
-  { code: 'payables', name: 'Кредиторская задолженность', isChild: true, isCalculated: true, isLinked: true, linkedSource: 'Входящее + Расходы (БДР) − Оплаты (БДДС)' },
-  { code: 'advances_received', name: 'Авансы полученные', isChild: true },
+  { code: 'payables', name: 'Кредиторская задолженность', isChild: true, isCalculated: true, isLinked: true, linkedSource: 'Σ детализации: КС-2 + Гарантийные удержания' },
+  { code: 'payables_sub_ks2', name: 'Задолженность перед субподрядчиками по КС-2', isChild: true, isCalculated: true, isLinked: true, linkedSource: 'Входящее + Расходы субподряд (БДР) − Оплаты субподряд (БДДС)' },
+  { code: 'payables_retentions', name: 'Гарантийные удержания удержанные', isChild: true },
+  { code: 'advances_received', name: 'Авансы полученные (от Заказчика)', isChild: true, isCalculated: true, isLinked: true, linkedSource: 'БДДС → Авансы от Заказчика − Оплата за выполненные работы' },
   { code: 'short_term_loans', name: 'Краткосрочные кредиты и займы', isChild: true },
   { code: 'current_lt_debt', name: 'Текущая часть долгосрочных обязательств', isChild: true },
   { code: 'other_current_liabilities', name: 'Прочие краткосрочные обязательства', isChild: true },
@@ -50,7 +54,7 @@ export const BBL_ROWS: BblRowDef[] = [
   // V. Собственный капитал
   { code: 'equity_total', name: 'Собственный капитал', isSemiBold: true, isCalculated: true, isSectionTotal: true },
   { code: 'share_capital', name: 'Уставный капитал', isChild: true },
-  { code: 'retained_earnings', name: 'Нераспределенная прибыль', isChild: true, isCalculated: true, isLinked: true, linkedSource: 'БДР: Σ Чистая прибыль − БДДС: Дивиденды' },
+  { code: 'retained_earnings', name: 'Нераспределенная прибыль', isChild: true, isCalculated: true, isLinked: true, linkedSource: 'БДР → Σ Чистая прибыль (накопит.) − БДДС → Дивиденды (накопит.)' },
   { code: 'reserve_capital', name: 'Резервный капитал', isChild: true },
 
   // ИТОГО ПАССИВЫ И КАПИТАЛ
@@ -73,7 +77,11 @@ export const BBL_SECTIONS: IBblSection[] = [
     key: 'section_current',
     title: 'II. ОБОРОТНЫЕ АКТИВЫ',
     summaryRowCode: 'current_total',
-    childCodes: ['cash_total', 'cash_rs', 'cash_obs', 'receivables', 'inventory_wip', 'prepaid_expenses', 'other_current_assets'],
+    childCodes: [
+      'cash_total', 'cash_rs', 'cash_obs',
+      'receivables', 'receivables_ks2', 'receivables_retentions',
+      'inventory_wip', 'prepaid_expenses', 'other_current_assets',
+    ],
     isAsset: true,
   },
   {
@@ -87,7 +95,10 @@ export const BBL_SECTIONS: IBblSection[] = [
     key: 'section_current_liabilities',
     title: 'III. КРАТКОСРОЧНЫЕ ОБЯЗАТЕЛЬСТВА',
     summaryRowCode: 'current_liabilities_total',
-    childCodes: ['payables', 'advances_received', 'short_term_loans', 'current_lt_debt', 'other_current_liabilities'],
+    childCodes: [
+      'payables', 'payables_sub_ks2', 'payables_retentions',
+      'advances_received', 'short_term_loans', 'current_lt_debt', 'other_current_liabilities',
+    ],
     isLiability: true,
   },
   {
@@ -124,19 +135,34 @@ export const BBL_MANUAL_CODES = BBL_ROWS
   .filter((r) => !r.isCalculated && !r.isSectionHeader)
   .map((r) => r.code);
 
+/** Коды пассивных строк (отображать по модулю в UI) */
+export const BBL_PASSIVE_CODES = new Set([
+  'current_liabilities_total', 'payables', 'payables_sub_ks2', 'payables_retentions',
+  'advances_received', 'short_term_loans', 'current_lt_debt', 'other_current_liabilities',
+  'lt_liabilities_total', 'long_term_loans', 'other_lt_liabilities',
+  'equity_total', 'share_capital', 'retained_earnings', 'reserve_capital',
+  'total_liabilities_equity',
+]);
+
 /** Формулы для тултипов */
 export const BBL_FORMULAS: Record<string, string> = {
   noncurrent_total: 'ОС + НМА + Прочие внеоборотные',
-  current_total: 'Денежные средства + Дебиторка + НЗП + Авансы выданные + Прочие',
+  current_total: 'Денежные ср-ва + Дебиторка + НЗП + Авансы выданные + Прочие',
   total_assets: 'Внеоборотные активы + Оборотные активы',
   cash_total: 'Из БДДС: Остаток на конец периода (р/с + ОБС)',
   cash_rs: 'Из БДДС: Остаток на расчётных счетах на конец',
   cash_obs: 'Из БДДС: Остаток на ОБС на конец',
-  receivables: 'Входящее сальдо + КС-2 с Заказчиком (БДР) − Поступления (БДДС)',
-  inventory_wip: 'Нарастающий итог: Выполнение (БДР) − КС-2 с Заказчиком (БДР)',
-  payables: 'Входящее сальдо + Расходы (БДР) − Оплаты (БДДС)',
-  retained_earnings: 'Σ Чистая прибыль (БДР) − Дивиденды (БДДС)',
-  current_liabilities_total: 'Кредиторка + Авансы получ. + Краткосрочные кредиты + Тек.часть долгосрочных + Прочие',
+  receivables: 'КС-2 Заказчика + Гарантийные удержания к получению',
+  receivables_ks2: 'Входящее сальдо + КС-2 с Заказчиком (БДР) − Поступления (БДДС)',
+  receivables_retentions: 'Ручной ввод: гарантийные удержания к получению',
+  inventory_wip: 'Выполнение (КС-2 внутр.) − КС-2 с Заказчиком (нарастающий, БДР)',
+  prepaid_expenses: 'Авансы субподрядчикам (БДДС) − Субподряд факт КС-2 (БДР)',
+  payables: 'КС-2 субподрядчиков + Гарантийные удержания удержанные',
+  payables_sub_ks2: 'Входящее сальдо + Субподряд КС-2 (БДР) − Оплаты субподряд (БДДС)',
+  payables_retentions: 'Ручной ввод: гарантийные удержания удержанные',
+  advances_received: 'Авансы от Заказчика (БДДС) − Оплата за выполненные работы (БДДС)',
+  retained_earnings: 'Σ Чистая прибыль (БДР, накопит.) − Дивиденды (БДДС, накопит.)',
+  current_liabilities_total: 'Кредиторка + Авансы получ. + Кредиты + Тек.часть долгосрочных + Прочие',
   lt_liabilities_total: 'Долгосрочные кредиты + Прочие долгосрочные',
   equity_total: 'Уставный капитал + Нераспр. прибыль + Резервный капитал',
   total_liabilities_equity: 'Краткосрочные + Долгосрочные + Капитал',

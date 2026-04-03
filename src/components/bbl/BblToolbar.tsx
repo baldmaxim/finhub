@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Button, Space, Typography, Tag } from 'antd';
+import { Button, Space, Typography, Tag, Tooltip } from 'antd';
 import { SaveOutlined } from '@ant-design/icons';
 import { YearSelect } from '../common/YearSelect';
 import type { Project } from '../../types/projects';
@@ -14,11 +14,13 @@ interface IProps {
   saving: boolean;
   selectedProjectId: string | null;
   onProjectChange: (projectId: string | null, project: Project | null) => void;
+  hasBalanceGap?: boolean;
 }
 
 export const BblToolbar = ({
   yearFrom, yearTo, onYearFromChange, onYearToChange,
   onSave, saving, selectedProjectId, onProjectChange,
+  hasBalanceGap = false,
 }: IProps) => {
   const [projects, setProjects] = useState<Project[]>([]);
 
@@ -28,6 +30,8 @@ export const BblToolbar = ({
     });
   }, []);
 
+  const saveDisabled = hasBalanceGap || saving;
+
   return (
     <div className="bdr-toolbar">
       <Space className="mb-8" wrap>
@@ -36,14 +40,20 @@ export const BblToolbar = ({
         <Typography.Text>по</Typography.Text>
         <YearSelect value={yearTo} onChange={onYearToChange} />
         {selectedProjectId && yearFrom === yearTo && (
-          <Button
-            type="primary"
-            icon={<SaveOutlined />}
-            onClick={onSave}
-            loading={saving}
+          <Tooltip
+            title={hasBalanceGap ? 'Сохранение заблокировано: баланс не сходится (разрыв ≠ 0)' : undefined}
           >
-            Сохранить
-          </Button>
+            <Button
+              type="primary"
+              icon={<SaveOutlined />}
+              onClick={onSave}
+              loading={saving}
+              disabled={saveDisabled}
+              danger={hasBalanceGap}
+            >
+              {hasBalanceGap ? 'Разрыв баланса' : 'Сохранить'}
+            </Button>
+          </Tooltip>
         )}
       </Space>
       <div className="dashboard-project-tags">

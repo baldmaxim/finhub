@@ -58,9 +58,9 @@ export interface IBblHealthMetrics {
   /** Чистый оборотный капитал (NWC) */
   nwc: number;
   /** Коэффициент текущей ликвидности (Current Ratio) */
-  currentRatio: number;
-  /** Кредитный рычаг (Debt-to-Equity) */
-  debtToEquity: number;
+  currentRatio: number | null;
+  /** Покрытие авансов (Advance Coverage Ratio) */
+  advanceCoverageRatio: number | null;
   /** Доля НЗП в Активах (%) */
   wipShare: number;
   /** Итого активы */

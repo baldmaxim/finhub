@@ -27,6 +27,7 @@ export const BblPage = () => {
 
   const isMultiYear = yearFrom !== yearTo;
   const isReadOnly = !selectedProjectId || isMultiYear;
+  const hasGap = Math.abs(healthMetrics.balanceGap) > 0.01;
 
   const handleYearFromChange = useCallback((y: number) => {
     setYearFrom(y);
@@ -53,6 +54,10 @@ export const BblPage = () => {
   }, []);
 
   const handleSave = async () => {
+    if (hasGap) {
+      message.error('Сохранение заблокировано: баланс не сходится');
+      return;
+    }
     try {
       await saveAll();
       message.success('Данные сохранены');
@@ -64,8 +69,6 @@ export const BblPage = () => {
   if (error) {
     return <Alert type="error" message="Ошибка" description={error} showIcon />;
   }
-
-  const hasGap = Math.abs(healthMetrics.balanceGap) > 0.01;
 
   return (
     <>
@@ -80,12 +83,13 @@ export const BblPage = () => {
           saving={saving}
           selectedProjectId={selectedProjectId}
           onProjectChange={handleProjectChange}
+          hasBalanceGap={hasGap}
         />
         {hasGap && (
           <Alert
             type="error"
-            message="Баланс не сходится"
-            description={`Разрыв: ИТОГО АКТИВЫ − ИТОГО ПАССИВЫ = ${(healthMetrics.balanceGap / 1_000_000).toFixed(2)} млн. Проверьте данные.`}
+            message="Баланс не сходится — сохранение заблокировано"
+            description={`Разрыв: ИТОГО АКТИВЫ − ИТОГО ПАССИВЫ = ${(healthMetrics.balanceGap / 1_000_000).toFixed(2)} млн. Утверждение факта невозможно до устранения расхождения.`}
             showIcon
             className="mb-16"
           />

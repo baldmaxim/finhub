@@ -1,11 +1,11 @@
 import { useMemo, useState } from 'react';
 import { Table, Tooltip, InputNumber } from 'antd';
-import { LinkOutlined } from '@ant-design/icons';
+import { LockOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import type { BblTableRow, IBblTreeRow } from '../../types/bbl';
 import type { YearMonthSlot } from '../../utils/constants';
 import { MONTHS } from '../../utils/constants';
-import { BBL_SECTIONS, BBL_FORMULAS } from '../../utils/bblConstants';
+import { BBL_SECTIONS, BBL_FORMULAS, BBL_PASSIVE_CODES } from '../../utils/bblConstants';
 import { formatAmount, parseAmount } from '../../utils/formatters';
 
 interface IProps {
@@ -15,6 +15,12 @@ interface IProps {
   onUpdatePlan?: (rowCode: string, month: number, amount: number) => void;
   onUpdateFact?: (rowCode: string, month: number, amount: number) => void;
 }
+
+/** Отображение значения: пассивы по модулю */
+const displayValue = (val: number, rowCode: string): number => {
+  if (BBL_PASSIVE_CODES.has(rowCode) && val < 0) return Math.abs(val);
+  return val;
+};
 
 export const BblTable = ({
   rows,
@@ -94,6 +100,42 @@ export const BblTable = ({
     return tree;
   }, [flatRows]);
 
+  /** Рендер ячейки значения */
+  const renderValueCell = (
+    val: number,
+    record: IBblTreeRow,
+    onUpdate?: (rowCode: string, month: number, amount: number) => void,
+    slotMonth?: number,
+  ) => {
+    const isLocked = record.isSectionHeader || record.isCalculated || record.isLinked;
+    const displayed = displayValue(val, record.rowCode);
+
+    if (isLocked || !onUpdate) {
+      const linkedTooltip = record.isLinked && record.linkedSource
+        ? `🔒 Импорт: ${record.linkedSource}`
+        : undefined;
+
+      const content = (
+        <span className={displayed < 0 ? 'amount-negative' : ''}>
+          {record.isLinked && <LockOutlined className="bbl-lock-icon" />}
+          {formatAmount(displayed)}
+        </span>
+      );
+
+      if (linkedTooltip) {
+        return <Tooltip title={linkedTooltip} placement="top">{content}</Tooltip>;
+      }
+      return content;
+    }
+
+    return (
+      <EditableCell
+        value={val}
+        onChange={(v) => onUpdate(record.rowCode, slotMonth ?? 0, v)}
+      />
+    );
+  };
+
   /** Построение колонок */
   const columns = useMemo((): ColumnsType<IBblTreeRow> => {
     const nameCol: ColumnsType<IBblTreeRow>[number] = {
@@ -107,9 +149,9 @@ export const BblTable = ({
         const content = (
           <span>
             {name}
-            {record.isLinked && (
-              <Tooltip title={record.linkedSource || 'Данные из БДР/БДДС'}>
-                <LinkOutlined className="bbl-link-icon" />
+            {record.isLinked && !record.isSectionHeader && (
+              <Tooltip title={record.linkedSource || 'Данные импортированы из БДР/БДДС'}>
+                <LockOutlined className="bbl-lock-icon" />
               </Tooltip>
             )}
           </span>
@@ -137,15 +179,7 @@ export const BblTable = ({
           className: 'bdds-plan-cell',
           render: (_: unknown, record: IBblTreeRow) => {
             const val = (record[`plan_month_${slot.dataKey}`] as number) || 0;
-            if (record.isSectionHeader || record.isCalculated || record.isLinked || !onUpdatePlan) {
-              return <span className={val < 0 ? 'amount-negative' : ''}>{formatAmount(val)}</span>;
-            }
-            return (
-              <EditableCell
-                value={val}
-                onChange={(v) => onUpdatePlan(record.rowCode, slot.month, v)}
-              />
-            );
+            return renderValueCell(val, record, onUpdatePlan, slot.month);
           },
         },
         {
@@ -155,15 +189,7 @@ export const BblTable = ({
           className: 'bdds-fact-cell',
           render: (_: unknown, record: IBblTreeRow) => {
             const val = (record[`fact_month_${slot.dataKey}`] as number) || 0;
-            if (record.isSectionHeader || record.isCalculated || record.isLinked || !onUpdateFact) {
-              return <span className={val < 0 ? 'amount-negative' : ''}>{formatAmount(val)}</span>;
-            }
-            return (
-              <EditableCell
-                value={val}
-                onChange={(v) => onUpdateFact(record.rowCode, slot.month, v)}
-              />
-            );
+            return renderValueCell(val, record, onUpdateFact, slot.month);
           },
         },
       ],
@@ -176,7 +202,7 @@ export const BblTable = ({
         width: 100,
         className: 'bdds-total-cell bdds-total-border-left',
         render: (_: unknown, record: IBblTreeRow) => {
-          const val = (record.plan_total as number) || 0;
+          const val = displayValue((record.plan_total as number) || 0, record.rowCode);
           return <span className={val < 0 ? 'amount-negative' : ''}>{formatAmount(val)}</span>;
         },
       },
@@ -186,7 +212,7 @@ export const BblTable = ({
         width: 100,
         className: 'bdds-total-cell',
         render: (_: unknown, record: IBblTreeRow) => {
-          const val = (record.fact_total as number) || 0;
+          const val = displayValue((record.fact_total as number) || 0, record.rowCode);
           return <span className={val < 0 ? 'amount-negative' : ''}>{formatAmount(val)}</span>;
         },
       },
@@ -199,10 +225,9 @@ export const BblTable = ({
     const classes: string[] = [];
     if (record.isSectionHeader) classes.push('bbl-section-header');
     if (record.isSectionTotal) classes.push('bbl-section-total');
-    if (record.isLinked) classes.push('bbl-linked-row');
+    if (record.isLinked && !record.isSectionHeader) classes.push('bbl-linked-row');
     if (record.isBalanceCheck) {
       classes.push('bbl-balance-check');
-      // Проверяем значения: если не 0 — alert
       const planTotal = (record.plan_total as number) || 0;
       const factTotal = (record.fact_total as number) || 0;
       if (Math.abs(planTotal) > 0.01 || Math.abs(factTotal) > 0.01) {
