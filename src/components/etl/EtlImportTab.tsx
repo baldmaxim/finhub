@@ -126,13 +126,13 @@ export const EtlImportTab: FC = () => {
           <Card size="small"><Statistic title="Всего" value={stats.total} /></Card>
         </Col>
         <Col xs={12} sm={6}>
-          <Card size="small"><Statistic title="Разнесено" value={stats.routed} valueStyle={{ color: '#52c41a' }} /></Card>
+          <Card size="small"><Statistic title="Разнесено" value={stats.routed} styles={{ content: { color: '#52c41a' } }} /></Card>
         </Col>
         <Col xs={12} sm={6}>
-          <Card size="small"><Statistic title="Карантин" value={stats.quarantine} valueStyle={{ color: '#fa8c16' }} /></Card>
+          <Card size="small"><Statistic title="Карантин" value={stats.quarantine} styles={{ content: { color: '#fa8c16' } }} /></Card>
         </Col>
         <Col xs={12} sm={6}>
-          <Card size="small"><Statistic title="Вручную" value={stats.manual} valueStyle={{ color: '#1890ff' }} /></Card>
+          <Card size="small"><Statistic title="Вручную" value={stats.manual} styles={{ content: { color: '#1890ff' } }} /></Card>
         </Col>
       </Row>
 

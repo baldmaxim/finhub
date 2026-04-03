@@ -6,6 +6,18 @@
 -- Идемпотентная миграция (безопасно перезапускать)
 -- =============================================================
 
+-- Удаляем старые функции от предыдущей версии миграции (если есть)
+DROP FUNCTION IF EXISTS etl_manual_route(uuid, uuid, uuid, boolean);
+DROP FUNCTION IF EXISTS etl_manual_route(uuid, uuid, uuid, boolean, boolean);
+DROP FUNCTION IF EXISTS etl_route_batch(uuid);
+DROP FUNCTION IF EXISTS etl_route_transaction(uuid);
+DROP FUNCTION IF EXISTS etl_route_debt_correction(uuid);
+
+-- Удаляем старые таблицы от предыдущей версии (если есть)
+DROP TABLE IF EXISTS etl_1c_transactions CASCADE;
+DROP TABLE IF EXISTS etl_1c_bank_account_map CASCADE;
+DROP TABLE IF EXISTS etl_1c_cashflow_item_map CASCADE;
+
 -- 1) Маппинг: контрагент + договор → проект
 CREATE TABLE IF NOT EXISTS etl_1c_contract_map (
   id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
@@ -257,6 +269,11 @@ ALTER TABLE etl_1c_contract_map ENABLE ROW LEVEL SECURITY;
 ALTER TABLE etl_1c_payment_masks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE etl_1c_entries ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "etl_contract_map_all" ON etl_1c_contract_map;
 CREATE POLICY "etl_contract_map_all" ON etl_1c_contract_map FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "etl_payment_masks_all" ON etl_1c_payment_masks;
 CREATE POLICY "etl_payment_masks_all" ON etl_1c_payment_masks FOR ALL USING (true) WITH CHECK (true);
+
+DROP POLICY IF EXISTS "etl_entries_all" ON etl_1c_entries;
 CREATE POLICY "etl_entries_all" ON etl_1c_entries FOR ALL USING (true) WITH CHECK (true);
