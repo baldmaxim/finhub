@@ -47,11 +47,6 @@ export async function upsertBatch(
   if (error) throw error;
 }
 
-function removeVat(amount: number, year: number): number {
-  const vatRate = year >= 2026 ? 22 : 20;
-  return amount * 100 / (100 + vatRate);
-}
-
 /** Итого «Всего СМР по проекту» за все годы — через RPC */
 export async function getSmrAllYearsTotal(projectId?: string): Promise<number> {
   const { data, error } = await supabase
