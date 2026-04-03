@@ -14,6 +14,7 @@ import {
   FileSearchOutlined,
   ToolOutlined,
   FileProtectOutlined,
+  SwapOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 
@@ -33,6 +34,7 @@ const menuItems: MenuItem[] = [
   { key: '/guarantee', icon: <SafetyCertificateOutlined />, label: 'Контроль ГУ' },
   { key: '/dashboards', icon: <DashboardOutlined />, label: 'Дашборды' },
   { key: '/dossier', icon: <FileSearchOutlined />, label: 'Досье договора' },
+  { key: '/etl', icon: <SwapOutlined />, label: 'Шлюз 1С' },
   {
     key: 'admin',
     icon: <SettingOutlined />,
