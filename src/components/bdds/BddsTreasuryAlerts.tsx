@@ -46,7 +46,7 @@ export const BddsTreasuryAlerts: FC<IProps> = ({ liquidity }) => {
         notifiedRef.current = true;
         notification.warning({
           message: 'Трекинг Банковских Гарантий',
-          description: `Зафиксирована оплата от Заказчика (${m.short}): ${fmt(factVal)} \u20BD. Направьте уведомление в банк для снижения лимита действующей БГ.`,
+          description: `Зафиксирована оплата от Заказчика (${m.short}): ${fmt(factVal)} ₽. Направьте уведомление в банк для снижения лимита действующей БГ.`,
           icon: <BankOutlined style={{ color: '#faad14' }} />,
           duration: 10,
           placement: 'topRight',
@@ -61,7 +61,7 @@ export const BddsTreasuryAlerts: FC<IProps> = ({ liquidity }) => {
     if (profitSweepAmount > 0) {
       notification.info({
         message: 'Вывод прибыли с ОБС',
-        description: `Доступно к переводу с ОБС на р/с: ${fmt(profitSweepAmount)} \u20BD в счет возмещения накладных расходов/прибыли.`,
+        description: `Доступно к переводу с ОБС на р/с: ${fmt(profitSweepAmount)} ₽ в счет возмещения накладных расходов/прибыли.`,
         icon: <DollarOutlined style={{ color: '#52c41a' }} />,
         duration: 8,
         placement: 'topRight',

@@ -40,7 +40,7 @@ export const BddsLiquidityCards: FC<IProps> = ({ liquidity }) => {
     legend: { position: 'bottom' as const },
     statistic: {
       title: { content: 'Ликвидность', style: { fontSize: '12px' } },
-      content: { content: fmt(rsValue + obsValue) + ' \u20BD', style: { fontSize: '14px' } },
+      content: { content: fmt(rsValue + obsValue) + ' ₽', style: { fontSize: '14px' } },
     },
   };
 
@@ -59,11 +59,11 @@ export const BddsLiquidityCards: FC<IProps> = ({ liquidity }) => {
             <Statistic
               title={<><BankOutlined /> Доступная ликвидность (р/с)</>}
               value={fmt(rsValue)}
-              suffix="\u20BD"
+              suffix="₽"
               valueStyle={{ color: rsValue >= 0 ? '#3f8600' : '#cf1322', fontSize: 22 }}
             />
             {isFactMode && rsBalance !== 0 && (
-              <div className="bdds-liquidity-plan-hint">План: {fmt(rsBalance)} \u20BD</div>
+              <div className="bdds-liquidity-plan-hint">План: {fmt(rsBalance)} ₽</div>
             )}
           </Card>
         </Col>
@@ -74,11 +74,11 @@ export const BddsLiquidityCards: FC<IProps> = ({ liquidity }) => {
             <Statistic
               title={<><LockOutlined /> Связанная ликвидность (ОБС)</>}
               value={fmt(obsValue)}
-              suffix="\u20BD"
+              suffix="₽"
               valueStyle={{ color: '#faad14', fontSize: 22 }}
             />
             {isFactMode && obsBalance !== 0 && (
-              <div className="bdds-liquidity-plan-hint">План: {fmt(obsBalance)} \u20BD</div>
+              <div className="bdds-liquidity-plan-hint">План: {fmt(obsBalance)} ₽</div>
             )}
           </Card>
         </Col>
@@ -106,7 +106,7 @@ export const BddsLiquidityCards: FC<IProps> = ({ liquidity }) => {
               <Statistic
                 title={<><AuditOutlined /> Баланс ГУ</>}
                 value={fmt(retentionGap)}
-                suffix="\u20BD"
+                suffix="₽"
                 valueStyle={{ color: retentionGap >= 0 ? '#3f8600' : '#cf1322', fontSize: 22 }}
               />
             </Card>
@@ -127,7 +127,7 @@ export const BddsLiquidityCards: FC<IProps> = ({ liquidity }) => {
           showIcon
           icon={<WarningOutlined />}
           message="Кассовый разрыв по свободным деньгам"
-          description={`Свободный кэш (р/с): ${fmt(rsValue)} \u20BD, при этом на ОБС заблокировано ${fmt(obsValue)} \u20BD. Операционные расходы не могут быть покрыты со счёта ОБС.`}
+          description={`Свободный кэш (р/с): ${fmt(rsValue)} ₽, при этом на ОБС заблокировано ${fmt(obsValue)} ₽. Операционные расходы не могут быть покрыты со счёта ОБС.`}
           className="mt-16"
         />
       )}
