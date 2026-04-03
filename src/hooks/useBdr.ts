@@ -145,13 +145,6 @@ export function useBdr(yearFrom: number, yearTo: number, projectId: string | nul
         });
       }
 
-      console.log('[BDR DEBUG] smrAllYearsTotal:', smrAllTotal);
-      console.log('[BDR DEBUG] revenueCumBefore:', cumBefore);
-      for (const [yr, yd] of newYearData.entries()) {
-        const ksMonths = Object.entries(yd.actualTotals.ks).filter(([, v]) => v !== 0);
-        console.log(`[BDR DEBUG] year=${yr} KS months:`, ksMonths, 'SMR months:', Object.entries(yd.smrTotals).filter(([, v]) => v !== 0));
-      }
-
       setYearDataMap(newYearData);
       setSmrAllYearsTotal(smrAllTotal);
       setRevenueCumBefore(cumBefore);
