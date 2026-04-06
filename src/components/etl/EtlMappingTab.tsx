@@ -32,8 +32,9 @@ export const EtlMappingTab: FC = () => {
       message.success('Сохранено');
       setModalType(null);
       form.resetFields();
-    } catch {
-      // validation error
+    } catch (err) {
+      if (err && typeof err === 'object' && 'errorFields' in err) return;
+      message.error(err instanceof Error ? err.message : 'Ошибка сохранения');
     }
   };
 
