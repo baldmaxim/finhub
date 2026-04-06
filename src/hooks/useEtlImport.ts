@@ -325,9 +325,10 @@ export function useEtlImport(): IUseEtlImportResult {
         console.warn(`[ETL] Дедупликация: ${entries.length - uniqueEntries.length} дублей отброшено`);
       }
 
-      // Вставляем и маршрутизируем
+      // Вставляем, маршрутизируем и синхронизируем факты
       await etlService.insertEntries(uniqueEntries);
       const routeResult = await etlService.routeBatch(batchId);
+      await etlService.syncBdds();
 
       const result: IEtlImportResult = {
         total: uniqueEntries.length,

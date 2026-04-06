@@ -78,6 +78,12 @@ export async function rerouteQuarantine(): Promise<{ routed: number; quarantine:
   return data as { routed: number; quarantine: number };
 }
 
+export async function syncBdds(): Promise<{ deleted: number; inserted: number }> {
+  const { data, error } = await supabase.rpc('etl_sync_bdds', {});
+  if (error) throw error;
+  return data as { deleted: number; inserted: number };
+}
+
 // === Маппинг договоров ===
 
 export async function getContractMaps(): Promise<IEtlContractMap[]> {
