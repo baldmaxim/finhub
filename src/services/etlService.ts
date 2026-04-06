@@ -89,17 +89,24 @@ export async function getContractMaps(): Promise<IEtlContractMap[]> {
   return data as IEtlContractMap[];
 }
 
+function cleanText(s: string): string {
+  return s.replace(/[\u00A0\u200B\u200C\u200D\uFEFF]/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
 export async function upsertContractMap(
   counterpartyName: string,
   contractName: string,
   projectId: string,
   note?: string
 ): Promise<void> {
+  const cleanCounterparty = cleanText(counterpartyName);
+  const cleanContract = cleanText(contractName);
+
   const { data: existing } = await supabase
     .from('etl_1c_contract_map')
     .select('id')
-    .eq('counterparty_name', counterpartyName)
-    .eq('contract_name', contractName)
+    .eq('counterparty_name', cleanCounterparty)
+    .eq('contract_name', cleanContract)
     .maybeSingle();
 
   if (existing) {
@@ -116,8 +123,8 @@ export async function upsertContractMap(
     const { error } = await supabase
       .from('etl_1c_contract_map')
       .insert({
-        counterparty_name: counterpartyName,
-        contract_name: contractName,
+        counterparty_name: cleanCounterparty,
+        contract_name: cleanContract,
         project_id: projectId,
         note: note || null,
       });
