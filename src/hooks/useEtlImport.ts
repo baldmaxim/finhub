@@ -305,12 +305,32 @@ export function useEtlImport(): IUseEtlImportResult {
         console.warn('[ETL] Пропущено строк:', skipped);
       }
 
+      // Дедупликация: убираем записи, уже существующие в БД
+      const existing = await etlService.getEntries();
+      const existingKeys = new Set(
+        existing.map((e) =>
+          `${e.doc_date}|${e.amount}|${e.counterparty_name ?? ''}|${e.contract_name ?? ''}|${e.debit_account ?? ''}`
+        )
+      );
+      const uniqueEntries = entries.filter((e) => {
+        const key = `${e.doc_date}|${e.amount}|${e.counterparty_name ?? ''}|${e.contract_name ?? ''}|${e.debit_account ?? ''}`;
+        return !existingKeys.has(key);
+      });
+
+      if (uniqueEntries.length === 0) {
+        throw new Error(`Все ${entries.length} проводок уже были импортированы ранее`);
+      }
+
+      if (uniqueEntries.length < entries.length) {
+        console.warn(`[ETL] Дедупликация: ${entries.length - uniqueEntries.length} дублей отброшено`);
+      }
+
       // Вставляем и маршрутизируем
-      await etlService.insertEntries(entries);
+      await etlService.insertEntries(uniqueEntries);
       const routeResult = await etlService.routeBatch(batchId);
 
       const result: IEtlImportResult = {
-        total: entries.length,
+        total: uniqueEntries.length,
         routed: routeResult.routed,
         quarantine: routeResult.quarantine,
         batchId,

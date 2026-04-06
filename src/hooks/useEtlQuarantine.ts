@@ -18,6 +18,7 @@ interface IUseEtlQuarantineResult {
     categoryId: string,
     saveRule: boolean
   ) => Promise<void>;
+  rerouteAll: () => Promise<{ routed: number; quarantine: number }>;
   reload: () => Promise<void>;
 }
 
@@ -59,6 +60,12 @@ export function useEtlQuarantine(): IUseEtlQuarantineResult {
     [loadData]
   );
 
+  const rerouteAll = useCallback(async () => {
+    const result = await etlService.rerouteQuarantine();
+    await loadData();
+    return result;
+  }, [loadData]);
+
   return {
     entries,
     projects,
@@ -66,6 +73,7 @@ export function useEtlQuarantine(): IUseEtlQuarantineResult {
     loading,
     error,
     resolveEntry,
+    rerouteAll,
     reload: loadData,
   };
 }

@@ -72,6 +72,12 @@ export async function manualRoute(
   if (error) throw error;
 }
 
+export async function rerouteQuarantine(): Promise<{ routed: number; quarantine: number }> {
+  const { data, error } = await supabase.rpc('etl_reroute_quarantine');
+  if (error) throw error;
+  return data as { routed: number; quarantine: number };
+}
+
 // === Маппинг договоров ===
 
 export async function getContractMaps(): Promise<IEtlContractMap[]> {

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import type { FC } from 'react';
 import { Table, Select, Button, Tag, Checkbox, Space, message, Typography } from 'antd';
-import { CheckOutlined, ReloadOutlined } from '@ant-design/icons';
+import { CheckOutlined, ReloadOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import { useEtlQuarantine } from '../../hooks/useEtlQuarantine';
 import type { IEtlEntry } from '../../types/etl';
 
@@ -12,9 +12,22 @@ interface IResolveState {
 }
 
 export const EtlQuarantineTab: FC = () => {
-  const { entries, projects, categories, loading, error, resolveEntry, reload } = useEtlQuarantine();
+  const { entries, projects, categories, loading, error, resolveEntry, rerouteAll, reload } = useEtlQuarantine();
   const [resolveStates, setResolveStates] = useState<Record<string, IResolveState>>({});
   const [resolving, setResolving] = useState<string | null>(null);
+  const [rerouting, setRerouting] = useState(false);
+
+  const handleReroute = async () => {
+    setRerouting(true);
+    try {
+      const result = await rerouteAll();
+      message.success(`Перемаршрутизация: ${result.routed} разнесено, ${result.quarantine} осталось в карантине`);
+    } catch {
+      message.error('Ошибка перемаршрутизации');
+    } finally {
+      setRerouting(false);
+    }
+  };
 
   const getState = (id: string): IResolveState =>
     resolveStates[id] || { projectId: null, categoryId: null, saveRule: false };
@@ -172,6 +185,16 @@ export const EtlQuarantineTab: FC = () => {
     <div>
       <Space style={{ marginBottom: 16 }}>
         <Tag color="orange">{entries.length} проводок в карантине</Tag>
+        <Button
+          type="primary"
+          icon={<ThunderboltOutlined />}
+          onClick={handleReroute}
+          loading={rerouting}
+          disabled={entries.length === 0}
+          size="small"
+        >
+          Перемаршрутизировать
+        </Button>
         <Button icon={<ReloadOutlined />} onClick={reload} loading={loading} size="small">
           Обновить
         </Button>
