@@ -94,12 +94,14 @@ export const EtlQuarantineTab: FC = () => {
       ellipsis: true,
     },
     {
-      title: 'Документ',
+      title: 'Документ / Назначение',
       dataIndex: 'document',
       key: 'document',
       ellipsis: true,
-      render: (v: string | null) => (
-        <Typography.Text style={{ fontSize: 11 }}>{v || '—'}</Typography.Text>
+      render: (_: string | null, record: IEtlEntry) => (
+        <Typography.Text style={{ fontSize: 11 }}>
+          {record.payment_purpose || record.document || '—'}
+        </Typography.Text>
       ),
     },
     {

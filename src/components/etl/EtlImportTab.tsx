@@ -1,10 +1,12 @@
 import { useRef, useState, useEffect } from 'react';
 import type { FC } from 'react';
-import { Button, Table, Tag, message, Card, Space, Statistic, Row, Col, Typography } from 'antd';
-import { ReloadOutlined, CloudUploadOutlined } from '@ant-design/icons';
+import { Button, Table, Tag, message, Card, Space, Statistic, Row, Col, Typography, Upload, Radio } from 'antd';
+import { ReloadOutlined, CloudUploadOutlined, InboxOutlined } from '@ant-design/icons';
 import { useEtlImport } from '../../hooks/useEtlImport';
 import * as etlService from '../../services/etlService';
-import type { IEtlEntry } from '../../types/etl';
+import type { IEtlEntry, EtlSourceType } from '../../types/etl';
+
+const { Dragger } = Upload;
 
 const STATUS_MAP: Record<string, { color: string; label: string }> = {
   pending: { color: 'default', label: 'Ожидает' },
@@ -19,10 +21,16 @@ const DOC_TYPE_MAP: Record<string, string> = {
   other: 'Прочее',
 };
 
+const SOURCE_TYPE_MAP: Record<string, string> = {
+  account_62: 'Сч. 62',
+  account_51: 'Сч. 51',
+};
+
 export const EtlImportTab: FC = () => {
   const { importing, lastResult, error, importFile } = useEtlImport();
   const [entries, setEntries] = useState<IEtlEntry[]>([]);
   const [loadingEntries, setLoadingEntries] = useState(false);
+  const [sourceType, setSourceType] = useState<EtlSourceType>('account_51');
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const loadEntries = async () => {
@@ -40,15 +48,19 @@ export const EtlImportTab: FC = () => {
   useEffect(() => { loadEntries(); }, []);
   useEffect(() => { if (lastResult) loadEntries(); }, [lastResult]);
 
-  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const result = await importFile(file);
+  const handleFile = async (file: File) => {
+    const result = await importFile(file, sourceType);
     if (result) {
       message.success(
         `Импорт: ${result.total} проводок, ${result.routed} разнесено, ${result.quarantine} в карантине`
       );
     }
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    await handleFile(file);
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
@@ -88,10 +100,11 @@ export const EtlImportTab: FC = () => {
       ellipsis: true,
     },
     {
-      title: 'Дт счёт',
-      dataIndex: 'debit_account',
-      key: 'debit_account',
-      width: 70,
+      title: 'Источник',
+      dataIndex: 'source_type',
+      key: 'source_type',
+      width: 80,
+      render: (v: string) => <Tag>{SOURCE_TYPE_MAP[v] || v}</Tag>,
     },
     {
       title: 'Статус',
@@ -136,6 +149,44 @@ export const EtlImportTab: FC = () => {
         </Col>
       </Row>
 
+      <Card size="small" style={{ marginBottom: 16 }}>
+        <Space direction="vertical" style={{ width: '100%' }} size="middle">
+          <Radio.Group
+            value={sourceType}
+            onChange={(e) => setSourceType(e.target.value)}
+            optionType="button"
+            buttonStyle="solid"
+            size="small"
+          >
+            <Radio.Button value="account_51">Карточка сч. 51</Radio.Button>
+            <Radio.Button value="account_62">Карточка сч. 62</Radio.Button>
+          </Radio.Group>
+
+          <Dragger
+            accept=".xlsx,.xls,.csv"
+            showUploadList={false}
+            disabled={importing}
+            beforeUpload={(file) => {
+              handleFile(file as unknown as File);
+              return false;
+            }}
+            style={{ padding: '8px 0' }}
+          >
+            <p style={{ marginBottom: 4 }}>
+              <InboxOutlined style={{ fontSize: 32, color: '#1890ff' }} />
+            </p>
+            <p style={{ fontSize: 13, marginBottom: 2 }}>
+              Перетащите файл или нажмите для выбора
+            </p>
+            <p style={{ fontSize: 11, color: '#999' }}>
+              {sourceType === 'account_51'
+                ? 'Карточка счета 51 из 1С (.xlsx) — поступления на р/с'
+                : 'Карточка счета 62 из 1С (.xlsx) — расчёты с заказчиками'}
+            </p>
+          </Dragger>
+        </Space>
+      </Card>
+
       <Space style={{ marginBottom: 16 }}>
         <input
           ref={fileInputRef}
@@ -143,16 +194,17 @@ export const EtlImportTab: FC = () => {
           accept=".xlsx,.xls"
           className="hidden-input"
           onChange={handleFileChange}
+          style={{ display: 'none' }}
         />
         <Button
-          type="primary"
           icon={<CloudUploadOutlined />}
           loading={importing}
           onClick={() => fileInputRef.current?.click()}
+          size="small"
         >
-          Импорт карточки сч. 62
+          Выбрать файл
         </Button>
-        <Button icon={<ReloadOutlined />} onClick={loadEntries} loading={loadingEntries}>
+        <Button icon={<ReloadOutlined />} onClick={loadEntries} loading={loadingEntries} size="small">
           Обновить
         </Button>
       </Space>
@@ -170,7 +222,7 @@ export const EtlImportTab: FC = () => {
         size="small"
         pagination={{ pageSize: 50, showSizeChanger: true, showTotal: (t) => `Всего: ${t}` }}
         loading={loadingEntries}
-        scroll={{ x: 900 }}
+        scroll={{ x: 1000 }}
       />
     </div>
   );

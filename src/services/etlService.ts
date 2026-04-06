@@ -41,6 +41,8 @@ export async function insertEntries(
     doc_type: string;
     counterparty_name: string | null;
     contract_name: string | null;
+    payment_purpose?: string | null;
+    source_type?: string;
     import_batch_id: string;
   }>
 ): Promise<void> {

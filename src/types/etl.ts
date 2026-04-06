@@ -1,6 +1,7 @@
 export type EtlDocType = 'receipt' | 'debt_correction' | 'other';
 export type EtlEntryStatus = 'pending' | 'routed' | 'quarantine' | 'manual';
 export type EtlRouteMethod = 'auto' | 'regex' | 'manual';
+export type EtlSourceType = 'account_62' | 'account_51';
 
 export interface IEtlEntry {
   id: string;
@@ -14,6 +15,8 @@ export interface IEtlEntry {
   doc_type: EtlDocType;
   counterparty_name: string | null;
   contract_name: string | null;
+  payment_purpose: string | null;
+  source_type: EtlSourceType;
   status: EtlEntryStatus;
   routed_project_id: string | null;
   routed_category_id: string | null;
