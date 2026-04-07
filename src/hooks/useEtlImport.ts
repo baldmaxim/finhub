@@ -1,7 +1,8 @@
 import { useState, useCallback } from 'react';
 import * as XLSX from 'xlsx';
 import * as etlService from '../services/etlService';
-import type { EtlDocType, EtlSourceType, IEtlImportResult } from '../types/etl';
+import * as bankAccountsService from '../services/bankAccountsService';
+import type { EtlDocType, EtlSourceType, IEtlImportResult, IBankAccount } from '../types/etl';
 
 function normalizeHeader(h: string): string {
   return h.toLowerCase().trim().replace(/\s+/g, ' ');
@@ -233,6 +234,12 @@ export function useEtlImport(): IUseEtlImportResult {
       const entries: Array<Parameters<typeof etlService.insertEntries>[0][0]> = [];
       const skipped: string[] = [];
 
+      // Загружаем справочник р/с для распознавания внутренних переводов
+      let ownAccounts: IBankAccount[] = [];
+      if (sourceType === 'account_51') {
+        try { ownAccounts = await bankAccountsService.getAll(); } catch { /* ignore */ }
+      }
+
       for (let r = dataStartRow; r <= range.e.r; r++) {
         const firstCell = getCellString(sheet, r, col.docDate);
         if (!firstCell) continue;
@@ -259,8 +266,19 @@ export function useEtlImport(): IUseEtlImportResult {
         const parsed = analyticsKt ? parseAnalyticsKt(analyticsKt) : { counterparty: '', contract: '' };
 
         let docType: EtlDocType;
+        let targetBankAccountId: string | null = null;
+
         if (sourceType === 'account_51') {
-          docType = 'receipt';
+          // Проверяем: если контрагент начинается с номера нашего р/с — внутренний перевод
+          const matchedAccount = ownAccounts.find((a) =>
+            parsed.counterparty.startsWith(a.account_number)
+          );
+          if (matchedAccount) {
+            docType = 'internal_transfer';
+            targetBankAccountId = matchedAccount.id;
+          } else {
+            docType = 'receipt';
+          }
         } else {
           docType = detectDocType(debitAccount);
         }
@@ -279,6 +297,7 @@ export function useEtlImport(): IUseEtlImportResult {
           payment_purpose: sourceType === 'account_51' ? (document || null) : null,
           source_type: sourceType,
           bank_account_id: bankAccountId || null,
+          target_bank_account_id: targetBankAccountId,
           import_batch_id: batchId,
         });
       }

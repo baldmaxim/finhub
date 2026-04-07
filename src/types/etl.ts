@@ -1,4 +1,4 @@
-export type EtlDocType = 'receipt' | 'debt_correction' | 'other';
+export type EtlDocType = 'receipt' | 'debt_correction' | 'internal_transfer' | 'other';
 export type EtlEntryStatus = 'pending' | 'routed' | 'quarantine' | 'manual';
 export type EtlRouteMethod = 'auto' | 'regex' | 'manual';
 export type EtlSourceType = 'account_62' | 'account_51';
@@ -23,6 +23,7 @@ export interface IEtlEntry {
   route_method: EtlRouteMethod | null;
   route_log: string | null;
   bank_account_id: string | null;
+  target_bank_account_id: string | null;
   import_batch_id: string;
   imported_at: string;
   routed_at: string | null;
@@ -66,4 +67,17 @@ export interface IBankAccount {
   is_active: boolean;
   created_at: string;
   updated_at: string;
+}
+
+export interface IBankAccountBalance {
+  id: string;
+  account_number: string;
+  bank_name: string;
+  bik: string;
+  description: string | null;
+  is_active: boolean;
+  inflows: number;
+  transfers_in: number;
+  transfers_out: number;
+  balance: number;
 }

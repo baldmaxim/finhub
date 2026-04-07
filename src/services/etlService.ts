@@ -44,6 +44,7 @@ export async function insertEntries(
     payment_purpose?: string | null;
     source_type?: string;
     bank_account_id?: string | null;
+    target_bank_account_id?: string | null;
     import_batch_id: string;
   }>
 ): Promise<void> {

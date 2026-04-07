@@ -19,6 +19,7 @@ const STATUS_MAP: Record<string, { color: string; label: string }> = {
 const DOC_TYPE_MAP: Record<string, string> = {
   receipt: 'Поступление',
   debt_correction: 'Корр. долга (РП)',
+  internal_transfer: 'Внутр. перевод',
   other: 'Прочее',
 };
 

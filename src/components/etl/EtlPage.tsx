@@ -1,9 +1,10 @@
 import type { FC } from 'react';
 import { Tabs, Typography } from 'antd';
-import { CloudUploadOutlined, ExclamationCircleOutlined, SettingOutlined } from '@ant-design/icons';
+import { CloudUploadOutlined, ExclamationCircleOutlined, SettingOutlined, BankOutlined } from '@ant-design/icons';
 import { EtlImportTab } from './EtlImportTab';
 import { EtlQuarantineTab } from './EtlQuarantineTab';
 import { EtlMappingTab } from './EtlMappingTab';
+import { BankAccountBalances } from './BankAccountBalances';
 
 const TAB_ITEMS = [
   {
@@ -12,6 +13,13 @@ const TAB_ITEMS = [
       <span><CloudUploadOutlined /> Импорт из 1С</span>
     ),
     children: <EtlImportTab />,
+  },
+  {
+    key: 'balances',
+    label: (
+      <span><BankOutlined /> Остатки р/с</span>
+    ),
+    children: <BankAccountBalances />,
   },
   {
     key: 'quarantine',

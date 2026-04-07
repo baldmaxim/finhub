@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase';
-import type { IBankAccount } from '../types/etl';
+import type { IBankAccount, IBankAccountBalance } from '../types/etl';
 
 export async function getAll(): Promise<IBankAccount[]> {
   const { data, error } = await supabase
@@ -32,4 +32,12 @@ export async function upsert(
 export async function remove(id: string): Promise<void> {
   const { error } = await supabase.from('bank_accounts').delete().eq('id', id);
   if (error) throw error;
+}
+
+export async function getBalances(): Promise<IBankAccountBalance[]> {
+  const { data, error } = await supabase
+    .from('bank_account_balances')
+    .select('*');
+  if (error) throw error;
+  return data as IBankAccountBalance[];
 }
