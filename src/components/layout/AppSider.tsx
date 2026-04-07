@@ -36,6 +36,7 @@ const menuItems: MenuItem[] = [
   { key: '/dashboards', icon: <DashboardOutlined />, label: 'Дашборды' },
   { key: '/dossier', icon: <FileSearchOutlined />, label: 'Досье договора' },
   { key: '/etl', icon: <SwapOutlined />, label: 'Шлюз 1С' },
+  { key: '/bank-balances', icon: <BankOutlined />, label: 'Остатки р/с' },
   {
     key: 'admin',
     icon: <SettingOutlined />,
