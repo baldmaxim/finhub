@@ -17,6 +17,7 @@ import { ContractsPageWrapper } from './pages/ContractsPageWrapper';
 import { Contracts1cPageWrapper } from './pages/Contracts1cPageWrapper';
 import { EtlPageWrapper } from './pages/EtlPageWrapper';
 import { BankBalancesPageWrapper } from './pages/BankBalancesPageWrapper';
+import { BddsAutoPageWrapper } from './pages/BddsAutoPageWrapper';
 
 export const App = () => {
   return (
@@ -28,6 +29,7 @@ export const App = () => {
           <Route path="/bdds/income" element={<BddsIncomePageWrapper />} />
           <Route path="/bdds/receipts" element={<BddsReceiptsPageWrapper />} />
           <Route path="/bdds/schedule-v2" element={<ScheduleV2PageWrapper />} />
+          <Route path="/bdds/auto" element={<BddsAutoPageWrapper />} />
           <Route path="/etl" element={<EtlPageWrapper />} />
           <Route path="/bank-balances" element={<BankBalancesPageWrapper />} />
           <Route path="/guarantee" element={<GuaranteePageWrapper />} />

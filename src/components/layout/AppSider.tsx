@@ -15,6 +15,7 @@ import {
   ToolOutlined,
   FileProtectOutlined,
   SwapOutlined,
+  ThunderboltOutlined,
 } from '@ant-design/icons';
 import type { MenuProps } from 'antd';
 
@@ -25,6 +26,7 @@ type MenuItem = Required<MenuProps>['items'][number];
 const menuItems: MenuItem[] = [
   { key: '/bdr', icon: <BarChartOutlined />, label: 'БДР' },
   { key: '/bdds', icon: <DollarOutlined />, label: 'БДДС' },
+  { key: '/bdds/auto', icon: <ThunderboltOutlined />, label: 'БДДС Авто' },
   { key: '/bbl', icon: <BankOutlined />, label: 'ББЛ' },
   { key: '/bdds/income', icon: <FundOutlined />, label: 'Плановый график' },
   { key: '/bdds/schedule-v2', icon: <FundOutlined />, label: 'Плановый график 2.0' },

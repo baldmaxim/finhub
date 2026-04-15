@@ -1272,3 +1272,82 @@ body {
 .contracts-1c-row-overlimit td {
   background-color: #fffbe6 !important;
 }
+
+/* ================================================
+   БДДС Авто
+   ================================================ */
+
+.bdds-auto-page {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+}
+
+.bdds-auto-toolbar {
+  margin-bottom: 0;
+}
+
+.bdds-auto-status-card {
+  margin-bottom: 0;
+}
+
+.bdds-auto-stat {
+  border-radius: 8px;
+}
+
+.bdds-auto-stat__label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+}
+
+.bdds-auto-stat--total    { border-top: 3px solid #1677ff; }
+.bdds-auto-stat--advances { border-top: 3px solid #52c41a; }
+.bdds-auto-stat--works    { border-top: 3px solid #13c2c2; }
+.bdds-auto-stat--gu       { border-top: 3px solid #fa8c16; }
+.bdds-auto-stat--remaining{ border-top: 3px solid #722ed1; }
+
+.bdds-auto-gen-card {
+  margin-bottom: 0;
+}
+
+.bdds-ks-plan-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bdds-ks-add-form {
+  padding: 12px;
+  background: #fafafa;
+  border: 1px dashed #d9d9d9;
+  border-radius: 6px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.bdds-ks-add-btn {
+  width: 100%;
+}
+
+.bdds-auto-quarantine-card {
+  margin-bottom: 0;
+}
+
+.bdds-summary-row td {
+  background-color: #f6ffed !important;
+  font-weight: 600;
+}
+
+@media (max-width: 768px) {
+  .bdds-auto-page {
+    padding: 8px;
+    gap: 10px;
+  }
+
+  .bdds-auto-stat .ant-statistic-content-value {
+    font-size: 13px !important;
+  }
+}
