@@ -13,8 +13,16 @@ export interface IDossierHeaderData {
 export interface IDossierBddsData {
   advance_payment_days: number;
   advance_requires_bg: boolean;
+  advance_pct?: number;
+  advance_amount?: number;
   preferential_advance_pct: number;
   preferential_advance_bank: string;
+  target_advance_max_pct?: number;
+  target_advance_to_supplier?: boolean;
+  target_advance_requires_bg?: boolean;
+  target_advance_decision_days?: number;
+  target_advance_payment_days?: number;
+  advance_offset_method?: string;
   ks2_submission_day: number;
   ks2_acceptance_days: number;
   ks2_payment_days: number;

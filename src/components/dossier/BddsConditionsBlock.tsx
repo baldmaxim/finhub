@@ -22,6 +22,7 @@ interface IProps {
 
 export const BddsConditionsBlock: FC<IProps> = ({ data, header }) => {
   const prefAdvanceAmount = header.contract_amount * (data.preferential_advance_pct / 100);
+  const targetAdvanceMaxAmount = header.contract_amount * ((data.target_advance_max_pct ?? 0) / 100);
   const totalLagDays = data.ks2_acceptance_days + data.ks2_payment_days;
   const calendarLag = Math.round(totalLagDays * 1.4);
 
@@ -80,6 +81,46 @@ export const BddsConditionsBlock: FC<IProps> = ({ data, header }) => {
               <> в <Tag color="blue">{data.preferential_advance_bank}</Tag></>
             )}
           </Paragraph>
+        </div>
+      )}
+
+      {/* Целевые авансы */}
+      {(data.target_advance_max_pct ?? 0) > 0 && (
+        <div className="dossier-section">
+          <div className="dossier-section-title">
+            <BankOutlined /> Целевые (дополнительные) авансовые платежи
+          </div>
+          <Paragraph className="dossier-section-text">
+            Размер — не более{' '}
+            <Text strong>{data.target_advance_max_pct}%</Text> от суммы договора
+            {' '}(<Text strong>{fmtAmt(targetAdvanceMaxAmount)} ₽</Text>).
+          </Paragraph>
+          <Paragraph className="dossier-section-text">
+            Назначение — исключительно для закупки{' '}
+            <Text strong>материалов и оборудования</Text>.
+          </Paragraph>
+          {data.target_advance_to_supplier && (
+            <Paragraph className="dossier-section-text">
+              Платёж производится Заказчиком{' '}
+              <Text strong>напрямую производителю / поставщику</Text>{' '}
+              по поручению Подрядчика.
+            </Paragraph>
+          )}
+          {data.target_advance_requires_bg === false && (
+            <Tag color="blue" className="dossier-lag-tag">
+              <InfoCircleOutlined /> Банковская гарантия на целевые авансы не предоставляется
+            </Tag>
+          )}
+          {((data.target_advance_decision_days ?? 0) > 0 || (data.target_advance_payment_days ?? 0) > 0) && (
+            <Paragraph className="dossier-section-text" style={{ marginTop: 8 }}>
+              {(data.target_advance_decision_days ?? 0) > 0 && (
+                <>Решение Заказчика — <Text strong>{data.target_advance_decision_days} раб. дней</Text>. </>
+              )}
+              {(data.target_advance_payment_days ?? 0) > 0 && (
+                <>Оплата — <Text strong>{data.target_advance_payment_days} раб. дней</Text>.</>
+              )}
+            </Paragraph>
+          )}
         </div>
       )}
 
