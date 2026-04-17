@@ -4,7 +4,7 @@ import {
   InputNumber, Divider, Badge, Tooltip,
 } from 'antd';
 import {
-  ThunderboltOutlined, SettingOutlined, WarningOutlined, LinkOutlined,
+  ThunderboltOutlined, SettingOutlined, WarningOutlined, LinkOutlined, CheckCircleOutlined,
 } from '@ant-design/icons';
 import { useNavigate } from 'react-router-dom';
 import { useBddsAuto } from '../../../hooks/useBddsAuto';
@@ -29,10 +29,12 @@ export const BddsAutoPage: FC = () => {
 
   const {
     calcRows, status, genResult, loading, generating,
-    guRatePct, prefAdvancePct, lagMonths,
+    guRatePct, prefAdvancePct, lagMonths, effective,
     setGuRatePct, setPrefAdvancePct, setLagMonths,
     saveKsPlanEntry, removeKsPlanEntry, generatePlan,
   } = useBddsAuto(selectedProjectId, year);
+
+  const hasDossier = !!effective;
 
   const handleProjectChange = useCallback((id: string) => {
     setSelectedProjectId(id);
@@ -130,7 +132,14 @@ export const BddsAutoPage: FC = () => {
             {/* Параметры досье (предпросмотр для расчёта в таблице) */}
             <Row gutter={16} align="middle" style={{ marginBottom: 16 }}>
               <Col>
-                <Typography.Text type="secondary">Параметры лага и удержаний:</Typography.Text>
+                <Typography.Text type="secondary">
+                  Параметры лага и удержаний:
+                  {hasDossier && (
+                    <Tooltip title="Значения загружены из досье договора. Можно изменить вручную.">
+                      <CheckCircleOutlined style={{ color: '#52c41a', marginLeft: 6 }} />
+                    </Tooltip>
+                  )}
+                </Typography.Text>
               </Col>
               <Col>
                 <Space>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { message } from 'antd';
 import * as bddsAutoService from '../services/bddsAutoService';
+import { useDossier } from './useDossier';
 import type {
   IKsPlanEntry,
   IKsPlanFormValues,
@@ -44,6 +45,8 @@ export function useBddsAuto(projectId: string | undefined, year: number) {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
 
+  const { effective, loadDossier } = useDossier();
+
   // Параметры досье (передаются снаружи для вычисления предварительного расчёта)
   const [guRatePct, setGuRatePct] = useState(0);
   const [prefAdvancePct, setPrefAdvancePct] = useState(0);
@@ -60,6 +63,7 @@ export function useBddsAuto(projectId: string | undefined, year: number) {
       const [plan, stat] = await Promise.all([
         bddsAutoService.getKsPlan(projectId, year),
         bddsAutoService.getContractStatus(projectId),
+        loadDossier(projectId),
       ]);
       setKsPlan(plan);
       setStatus(stat);
@@ -69,9 +73,18 @@ export function useBddsAuto(projectId: string | undefined, year: number) {
     } finally {
       setLoading(false);
     }
-  }, [projectId, year]);
+  }, [projectId, year, loadDossier]);
 
   useEffect(() => { loadAll(); }, [loadAll]);
+
+  useEffect(() => {
+    if (!effective) return;
+    const { bdds } = effective.effective;
+    setGuRatePct(bdds.gu_rate_pct ?? 0);
+    setPrefAdvancePct(bdds.preferential_advance_pct ?? 0);
+    const lagDays = (bdds.ks2_submission_day ?? 5) + (bdds.ks2_acceptance_days ?? 15) + (bdds.ks2_payment_days ?? 15);
+    setLagMonths(Math.ceil(lagDays / 30));
+  }, [effective]);
 
   const saveKsPlanEntry = useCallback(async (values: IKsPlanFormValues) => {
     try {
@@ -133,6 +146,7 @@ export function useBddsAuto(projectId: string | undefined, year: number) {
     guRatePct,
     prefAdvancePct,
     lagMonths,
+    effective,
     setGuRatePct,
     setPrefAdvancePct,
     setLagMonths,
