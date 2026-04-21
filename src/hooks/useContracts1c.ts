@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import type { IContract1c, IContract1cEnrichData } from '../types/contracts1c';
 import * as contracts1cService from '../services/contracts1cService';
+import { createContractFrom1c } from '../services/contractsService';
 
 interface IUseContracts1cResult {
   contracts: IContract1c[];
@@ -9,6 +10,7 @@ interface IUseContracts1cResult {
   enrich: (id: string, data: IContract1cEnrichData) => Promise<{ success: boolean; budgetMessage?: string }>;
   revalidate: (id: string) => Promise<{ success: boolean; budgetMessage?: string }>;
   remove: (id: string) => Promise<void>;
+  pushToBdr: (contract: IContract1c) => Promise<{ success: boolean; budgetMessage?: string }>;
   reload: () => Promise<void>;
 }
 
@@ -51,5 +53,14 @@ export function useContracts1c(): IUseContracts1cResult {
     await load();
   }, [load]);
 
-  return { contracts, loading, error, enrich, revalidate, remove, reload: load };
+  const pushToBdr = useCallback(async (contract: IContract1c) => {
+    const result = await createContractFrom1c(contract);
+    if (result.success && result.contractId) {
+      await contracts1cService.linkBdrContract(contract.id, result.contractId);
+      await load();
+    }
+    return { success: result.success, budgetMessage: result.budgetMessage };
+  }, [load]);
+
+  return { contracts, loading, error, enrich, revalidate, remove, pushToBdr, reload: load };
 }

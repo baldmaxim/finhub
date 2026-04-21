@@ -6,7 +6,7 @@ import { Contracts1cImportTab } from './Contracts1cImportTab';
 import { Contracts1cRegistryTab } from './Contracts1cRegistryTab';
 
 export const Contracts1cPage = () => {
-  const { contracts, loading, enrich, revalidate, remove, reload } = useContracts1c();
+  const { contracts, loading, enrich, revalidate, remove, pushToBdr, reload } = useContracts1c();
   const { projects } = useProjects();
 
   const items = [
@@ -31,6 +31,7 @@ export const Contracts1cPage = () => {
           onEnrich={enrich}
           onRevalidate={revalidate}
           onRemove={remove}
+          onPushToBdr={pushToBdr}
         />
       ),
     },

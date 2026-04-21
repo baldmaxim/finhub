@@ -134,6 +134,16 @@ export async function revalidateContract(id: string): Promise<{ success: boolean
   return { success: true };
 }
 
+/** Сохранить ссылку на созданный БДР-договор */
+export async function linkBdrContract(id: string, bdrContractId: string): Promise<void> {
+  const { error } = await supabase
+    .from('contracts_1c')
+    .update({ bdr_contract_id: bdrContractId, updated_at: new Date().toISOString() })
+    .eq('id', id);
+
+  if (error) throw error;
+}
+
 /** Удалить договор */
 export async function deleteContract(id: string): Promise<void> {
   const { error } = await supabase

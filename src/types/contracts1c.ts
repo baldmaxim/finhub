@@ -22,6 +22,7 @@ export interface IContract1c {
   gencontract_percent: number | null;
   account_type: AccountType | null;
   prev_amount: number | null;
+  bdr_contract_id: string | null;
   import_batch_id: string | null;
   imported_at: string;
   enriched_at: string | null;

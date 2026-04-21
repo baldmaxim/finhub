@@ -1,6 +1,6 @@
 import { useState, useCallback, type FC } from 'react';
 import { Table, Tag, Button, Popconfirm, message, Modal, Tooltip } from 'antd';
-import { EditOutlined, DeleteOutlined, CheckCircleOutlined, ExclamationCircleOutlined } from '@ant-design/icons';
+import { EditOutlined, DeleteOutlined, CheckCircleOutlined, ExclamationCircleOutlined, FileAddOutlined } from '@ant-design/icons';
 import type { ColumnsType } from 'antd/es/table';
 import dayjs from 'dayjs';
 import type { IContract1c, IContract1cEnrichData } from '../../types/contracts1c';
@@ -17,6 +17,7 @@ interface IContracts1cRegistryTabProps {
   onEnrich: (id: string, data: IContract1cEnrichData) => Promise<{ success: boolean; budgetMessage?: string }>;
   onRevalidate: (id: string) => Promise<{ success: boolean; budgetMessage?: string }>;
   onRemove: (id: string) => Promise<void>;
+  onPushToBdr: (contract: IContract1c) => Promise<{ success: boolean; budgetMessage?: string }>;
 }
 
 export const Contracts1cRegistryTab: FC<IContracts1cRegistryTabProps> = ({
@@ -26,9 +27,11 @@ export const Contracts1cRegistryTab: FC<IContracts1cRegistryTabProps> = ({
   onEnrich,
   onRevalidate,
   onRemove,
+  onPushToBdr,
 }) => {
   const [enrichContract, setEnrichContract] = useState<IContract1c | null>(null);
   const [saving, setSaving] = useState(false);
+  const [pushingId, setPushingId] = useState<string | null>(null);
 
   const handleEnrich = useCallback(async (id: string, data: IContract1cEnrichData) => {
     setSaving(true);
@@ -58,6 +61,24 @@ export const Contracts1cRegistryTab: FC<IContracts1cRegistryTabProps> = ({
       message.error(result.budgetMessage || 'Лимит превышен');
     }
   }, [onRevalidate]);
+
+  const handlePushToBdr = useCallback(async (contract: IContract1c) => {
+    setPushingId(contract.id);
+    try {
+      const result = await onPushToBdr(contract);
+      if (result.success) {
+        message.success('Договор добавлен в раздел Договоры БДР');
+      } else {
+        Modal.warning({
+          title: 'Превышен лимит БДР',
+          icon: <ExclamationCircleOutlined />,
+          content: result.budgetMessage,
+        });
+      }
+    } finally {
+      setPushingId(null);
+    }
+  }, [onPushToBdr]);
 
   const projectMap = new Map(projects.map(p => [p.id, p.name]));
 
@@ -117,9 +138,9 @@ export const Contracts1cRegistryTab: FC<IContracts1cRegistryTabProps> = ({
     },
     {
       title: 'Действия',
-      width: 120,
+      width: 180,
       render: (_: unknown, r: IContract1c) => (
-        <span style={{ display: 'flex', gap: 4 }}>
+        <span style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
           {(r.status === 'new' || r.status === 'overlimit') && (
             <Button
               type="link"
@@ -139,6 +160,23 @@ export const Contracts1cRegistryTab: FC<IContracts1cRegistryTabProps> = ({
             >
               Подтвердить
             </Button>
+          )}
+          {r.status === 'active' && (
+            r.bdr_contract_id
+              ? <Tag color="green">В БДР</Tag>
+              : (
+                <Tooltip title="Создать договор в разделе Договоры БДР">
+                  <Button
+                    type="link"
+                    size="small"
+                    icon={<FileAddOutlined />}
+                    loading={pushingId === r.id}
+                    onClick={() => handlePushToBdr(r)}
+                  >
+                    В Договоры БДР
+                  </Button>
+                </Tooltip>
+              )
           )}
           <Popconfirm title="Удалить договор?" onConfirm={() => onRemove(r.id)}>
             <Button type="text" size="small" icon={<DeleteOutlined />} danger />

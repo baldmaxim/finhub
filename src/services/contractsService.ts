@@ -112,6 +112,28 @@ export async function getCommittedAmount(
   return (data || []).reduce((sum, c) => sum + Number(c.amount), 0);
 }
 
+/** Создать договор БДР из 1С-договора */
+export async function createContractFrom1c(
+  contract: import('../types/contracts1c').IContract1c
+): Promise<{ success: boolean; contractId?: string; budgetMessage?: string }> {
+  if (!contract.project_id || !contract.bdr_sub_type) {
+    return { success: false, budgetMessage: 'Договор 1С не привязан к проекту и статье БДР' };
+  }
+
+  const formData: IBdrContractFormData = {
+    project_id: contract.project_id,
+    bdr_sub_type: contract.bdr_sub_type as import('../types/bdr').BdrSubType,
+    contract_number: contract.contract_number,
+    contractor_name: contract.counterparty_name,
+    amount: contract.amount,
+    sign_date: contract.contract_date ?? undefined,
+  };
+
+  const result = await createContract(formData);
+  if (!result.success) return { success: false, budgetMessage: result.budgetMessage };
+  return { success: true, contractId: result.contract?.id };
+}
+
 /** Удалить договор */
 export async function deleteContract(id: string): Promise<void> {
   const { error } = await supabase
