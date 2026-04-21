@@ -103,6 +103,19 @@ export interface IEffectiveDossier {
   };
 }
 
+/** Вычисленные финансовые значения из эффективного досье */
+export interface IDossierComputedValues {
+  contractAmount: number;
+  contractAmountExVat: number;
+  advanceAmount: number;
+  preferentialAdvanceAmount: number;
+  targetAdvanceMaxAmount: number;
+  guHoldPct: number;
+  paymentLagDays: number;
+  paymentLagMonths: number;
+  remainingDays: number;
+}
+
 /** Дефолтные значения для нового договора */
 export const EMPTY_HEADER: IDossierHeaderData = {
   contract_name: '',

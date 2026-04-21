@@ -5,7 +5,7 @@ import { FilePdfOutlined, ArrowUpOutlined } from '@ant-design/icons';
 import html2canvas from 'html2canvas';
 import type { Project } from '../../types/projects';
 import type { ContractDossier, ContractDossierFormData, DossierDocumentType } from '../../types/dossier';
-import { useDossier } from '../../hooks/useDossier';
+import { useDossierContext } from '../../contexts/DossierContext';
 import { DossierToolbar } from './DossierToolbar';
 import { DossierHeader } from './DossierHeader';
 import { AmendmentsList } from './AmendmentsList';
@@ -36,7 +36,7 @@ export const ContractDossierPage: FC = () => {
     saveDossier,
     updateDossier,
     deleteDossier,
-  } = useDossier();
+  } = useDossierContext();
 
   const handleProjectChange = useCallback(
     (projectId: string | null, _project: Project | null) => {

@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { message } from 'antd';
 import * as bddsAutoService from '../services/bddsAutoService';
-import { useDossier } from './useDossier';
+import { useDossierContext } from '../contexts/DossierContext';
 import type {
   IKsPlanEntry,
   IKsPlanFormValues,
@@ -45,7 +45,7 @@ export function useBddsAuto(projectId: string | undefined, year: number) {
   const [loading, setLoading] = useState(false);
   const [generating, setGenerating] = useState(false);
 
-  const { effective, loadDossier } = useDossier();
+  const { effective, loadDossier } = useDossierContext();
 
   // Параметры досье (передаются снаружи для вычисления предварительного расчёта)
   const [guRatePct, setGuRatePct] = useState(0);
