@@ -23,6 +23,11 @@ import type {
   DossierDocumentType,
 } from '../../types/dossier';
 
+const fmtNum = (v: number | undefined) =>
+  v != null ? v.toLocaleString('ru-RU') : '—';
+const fmtDate = (v: string | undefined) =>
+  v ? v.split('-').reverse().join('.') : '—';
+
 const { TextArea } = Input;
 const { Text } = Typography;
 
@@ -31,6 +36,7 @@ interface IProps {
   mode: DossierDocumentType;
   projectId: string;
   dossier: ContractDossier | null;
+  base?: ContractDossier | null;
   loading: boolean;
   onSave: (data: ContractDossierFormData) => void;
   onCancel: () => void;
@@ -46,6 +52,7 @@ export const DossierEditModal: FC<IProps> = ({
   mode,
   projectId,
   dossier,
+  base,
   loading,
   onSave,
   onCancel,
@@ -53,6 +60,12 @@ export const DossierEditModal: FC<IProps> = ({
   const [form] = Form.useForm();
   const isEdit = !!dossier;
   const isAmendment = mode === 'amendment';
+  const showHints = isAmendment && !isEdit && !!base;
+
+  const hint = (label: string, current: string) =>
+    showHints
+      ? <>{label} <Text type="secondary" style={{ fontSize: 11 }}>({current})</Text></>
+      : label;
 
   useEffect(() => {
     if (!open) return;
@@ -234,7 +247,7 @@ export const DossierEditModal: FC<IProps> = ({
                   </Row>
                   <Row gutter={16}>
                     <Col span={8}>
-                      <Form.Item name="contract_amount" label="Сумма договора, ₽">
+                      <Form.Item name="contract_amount" label={hint('Сумма договора, ₽', `${fmtNum(base?.header_data.contract_amount)} ₽`)}>
                         <InputNumber
                           className="w-full"
                           min={0}
@@ -254,22 +267,22 @@ export const DossierEditModal: FC<IProps> = ({
                       </Form.Item>
                     </Col>
                     <Col span={4}>
-                      <Form.Item name="nds_rate" label="НДС, %">
+                      <Form.Item name="nds_rate" label={hint('НДС, %', `${base?.header_data.nds_rate ?? '—'}%`)}>
                         <InputNumber className="w-full" min={0} max={100} />
                       </Form.Item>
                     </Col>
                     <Col span={4}>
-                      <Form.Item name="start_date" label="Начало">
+                      <Form.Item name="start_date" label={hint('Начало', fmtDate(base?.header_data.start_date))}>
                         <DatePicker className="w-full" format="DD.MM.YYYY" />
                       </Form.Item>
                     </Col>
                     <Col span={4}>
-                      <Form.Item name="end_date" label="Окончание">
+                      <Form.Item name="end_date" label={hint('Окончание', fmtDate(base?.header_data.end_date))}>
                         <DatePicker className="w-full" format="DD.MM.YYYY" />
                       </Form.Item>
                     </Col>
                   </Row>
-                  <Form.Item name="duration_months" label="Срок, мес.">
+                  <Form.Item name="duration_months" label={hint('Срок, мес.', `${base?.header_data.duration_months ?? '—'} мес.`)}>
                     <InputNumber min={0} />
                   </Form.Item>
                 </>
@@ -284,7 +297,7 @@ export const DossierEditModal: FC<IProps> = ({
                   <Divider>Авансирование</Divider>
                   <Row gutter={16}>
                     <Col span={8}>
-                      <Form.Item name="advance_payment_days" label="Срок выплаты аванса, раб. дн.">
+                      <Form.Item name="advance_payment_days" label={hint('Срок выплаты аванса, раб. дн.', `${base?.bdds_data.advance_payment_days ?? '—'} дн.`)}>
                         <InputNumber className="w-full" min={0} />
                       </Form.Item>
                     </Col>
@@ -294,7 +307,7 @@ export const DossierEditModal: FC<IProps> = ({
                       </Form.Item>
                     </Col>
                     <Col span={8}>
-                      <Form.Item name="preferential_advance_pct" label="Льготный аванс (без БГ), %">
+                      <Form.Item name="preferential_advance_pct" label={hint('Льготный аванс (без БГ), %', `${base?.bdds_data.preferential_advance_pct ?? '—'}%`)}>
                         <InputNumber className="w-full" min={0} max={100} />
                       </Form.Item>
                     </Col>
@@ -305,17 +318,17 @@ export const DossierEditModal: FC<IProps> = ({
                   <Divider>Тайминг КС-2/КС-3</Divider>
                   <Row gutter={16}>
                     <Col span={8}>
-                      <Form.Item name="ks2_submission_day" label="Подача актов (до N числа)">
+                      <Form.Item name="ks2_submission_day" label={hint('Подача актов (до N числа)', `${base?.bdds_data.ks2_submission_day ?? '—'}`)}>
                         <InputNumber className="w-full" min={1} max={31} />
                       </Form.Item>
                     </Col>
                     <Col span={8}>
-                      <Form.Item name="ks2_acceptance_days" label="Приёмка, раб. дн.">
+                      <Form.Item name="ks2_acceptance_days" label={hint('Приёмка, раб. дн.', `${base?.bdds_data.ks2_acceptance_days ?? '—'} дн.`)}>
                         <InputNumber className="w-full" min={0} />
                       </Form.Item>
                     </Col>
                     <Col span={8}>
-                      <Form.Item name="ks2_payment_days" label="Оплата, раб. дн.">
+                      <Form.Item name="ks2_payment_days" label={hint('Оплата, раб. дн.', `${base?.bdds_data.ks2_payment_days ?? '—'} дн.`)}>
                         <InputNumber className="w-full" min={0} />
                       </Form.Item>
                     </Col>
@@ -323,12 +336,12 @@ export const DossierEditModal: FC<IProps> = ({
                   <Divider>Гарантийное удержание</Divider>
                   <Row gutter={16}>
                     <Col span={6}>
-                      <Form.Item name="gu_rate_pct" label="Ставка ГУ, %">
+                      <Form.Item name="gu_rate_pct" label={hint('Ставка ГУ, %', `${base?.bdds_data.gu_rate_pct ?? '—'}%`)}>
                         <InputNumber className="w-full" min={0} max={100} step={0.5} />
                       </Form.Item>
                     </Col>
                     <Col span={6}>
-                      <Form.Item name="gu_return_months" label="Возврат через, мес.">
+                      <Form.Item name="gu_return_months" label={hint('Возврат через, мес.', `${base?.bdds_data.gu_return_months ?? '—'} мес.`)}>
                         <InputNumber className="w-full" min={0} />
                       </Form.Item>
                     </Col>
@@ -338,7 +351,7 @@ export const DossierEditModal: FC<IProps> = ({
                       </Form.Item>
                     </Col>
                     <Col span={6}>
-                      <Form.Item name="gu_bg_return_days" label="Возврат при замене, раб. дн.">
+                      <Form.Item name="gu_bg_return_days" label={hint('Возврат при замене, раб. дн.', `${base?.bdds_data.gu_bg_return_days ?? '—'} дн.`)}>
                         <InputNumber className="w-full" min={0} />
                       </Form.Item>
                     </Col>
@@ -354,22 +367,22 @@ export const DossierEditModal: FC<IProps> = ({
                   <Divider>Распределение экономии</Divider>
                   <Row gutter={16}>
                     <Col span={6}>
-                      <Form.Item name="savings_gp_pct" label="Инициатива ГП — нам, %">
+                      <Form.Item name="savings_gp_pct" label={hint('Инициатива ГП — нам, %', `${base?.bdr_data.savings_gp_pct ?? '—'}%`)}>
                         <InputNumber className="w-full" min={0} max={100} />
                       </Form.Item>
                     </Col>
                     <Col span={6}>
-                      <Form.Item name="savings_customer_pct" label="Инициатива ГП — заказчику, %">
+                      <Form.Item name="savings_customer_pct" label={hint('Инициатива ГП — заказчику, %', `${base?.bdr_data.savings_customer_pct ?? '—'}%`)}>
                         <InputNumber className="w-full" min={0} max={100} />
                       </Form.Item>
                     </Col>
                     <Col span={6}>
-                      <Form.Item name="savings_customer_init_gp_pct" label="Инициатива Заказчика — нам, %">
+                      <Form.Item name="savings_customer_init_gp_pct" label={hint('Инициатива Заказчика — нам, %', `${base?.bdr_data.savings_customer_init_gp_pct ?? '—'}%`)}>
                         <InputNumber className="w-full" min={0} max={100} />
                       </Form.Item>
                     </Col>
                     <Col span={6}>
-                      <Form.Item name="savings_customer_init_pct" label="Инициатива Заказчика — им, %">
+                      <Form.Item name="savings_customer_init_pct" label={hint('Инициатива Заказчика — им, %', `${base?.bdr_data.savings_customer_init_pct ?? '—'}%`)}>
                         <InputNumber className="w-full" min={0} max={100} />
                       </Form.Item>
                     </Col>
@@ -377,7 +390,7 @@ export const DossierEditModal: FC<IProps> = ({
                   <Divider>Пересчёт цены</Divider>
                   <Row gutter={16}>
                     <Col span={8}>
-                      <Form.Item name="price_revision_threshold_pct" label="Порог изменения рынка, %">
+                      <Form.Item name="price_revision_threshold_pct" label={hint('Порог изменения рынка, %', `${base?.bdr_data.price_revision_threshold_pct ?? '—'}%`)}>
                         <InputNumber className="w-full" min={0} max={100} />
                       </Form.Item>
                     </Col>
@@ -492,12 +505,12 @@ export const DossierEditModal: FC<IProps> = ({
                   <Divider>Встречная ответственность заказчика</Divider>
                   <Row gutter={16}>
                     <Col span={12}>
-                      <Form.Item name="customer_penalty_rate_pct" label="Пени заказчика, %/день">
+                      <Form.Item name="customer_penalty_rate_pct" label={hint('Пени заказчика, %/день', `${base?.penalties_data.customer_penalty_rate_pct ?? '—'}%`)}>
                         <InputNumber className="w-full" min={0} max={100} step={0.01} />
                       </Form.Item>
                     </Col>
                     <Col span={12}>
-                      <Form.Item name="customer_penalty_start_day" label="Начисление с N-го раб. дня">
+                      <Form.Item name="customer_penalty_start_day" label={hint('Начисление с N-го раб. дня', `с ${base?.penalties_data.customer_penalty_start_day ?? '—'}-го`)}>
                         <InputNumber className="w-full" min={0} />
                       </Form.Item>
                     </Col>

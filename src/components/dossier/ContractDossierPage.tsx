@@ -178,6 +178,7 @@ export const ContractDossierPage: FC = () => {
           mode={modalMode}
           projectId={selectedProjectId}
           dossier={editingDoc}
+          base={effective?.base ?? null}
           loading={saving}
           onSave={handleModalSave}
           onCancel={() => {
