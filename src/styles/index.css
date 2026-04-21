@@ -756,6 +756,31 @@ body {
   margin-top: 4px;
 }
 
+.dossier-amendment-diff {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+  margin-left: 4px;
+}
+
+.dossier-diff-item {
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.dossier-diff-label {
+  font-size: 12px;
+}
+
+.dossier-diff-value {
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.dossier-diff-delta {
+  font-size: 11px;
+}
+
 .mb-8 {
   margin-bottom: 8px;
 }
