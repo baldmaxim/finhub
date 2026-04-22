@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase';
-import type { IEtlEntry, IEtlContractMap, IEtlPaymentMask } from '../types/etl';
+import type { IEtlEntry, IEtlContractMap, IEtlPaymentMask, IEtlRoutingRule } from '../types/etl';
 
 const BATCH_SIZE = 500;
 
@@ -27,6 +27,19 @@ export async function getEntries(status?: string, batchId?: string): Promise<IEt
   }
 
   return allData;
+}
+
+export async function getEntriesForDateRange(
+  minDate: string,
+  maxDate: string
+): Promise<Pick<IEtlEntry, 'doc_date' | 'amount' | 'counterparty_name' | 'contract_name' | 'debit_account'>[]> {
+  const { data, error } = await supabase
+    .from('etl_1c_entries')
+    .select('doc_date, amount, counterparty_name, contract_name, debit_account')
+    .gte('doc_date', minDate)
+    .lte('doc_date', maxDate);
+  if (error) throw error;
+  return (data ?? []) as Pick<IEtlEntry, 'doc_date' | 'amount' | 'counterparty_name' | 'contract_name' | 'debit_account'>[];
 }
 
 export async function insertEntries(
@@ -169,5 +182,30 @@ export async function upsertPaymentMask(
 
 export async function deletePaymentMask(id: string): Promise<void> {
   const { error } = await supabase.from('etl_1c_payment_masks').delete().eq('id', id);
+  if (error) throw error;
+}
+
+// === Правила структурной маршрутизации ===
+
+export async function getRoutingRules(): Promise<IEtlRoutingRule[]> {
+  const { data, error } = await supabase
+    .from('etl_routing_rules')
+    .select('*')
+    .order('priority');
+  if (error) throw error;
+  return data as IEtlRoutingRule[];
+}
+
+export async function upsertRoutingRule(
+  rule: Omit<IEtlRoutingRule, 'created_at' | 'updated_at'> & { id?: string }
+): Promise<void> {
+  const { error } = await supabase
+    .from('etl_routing_rules')
+    .upsert({ ...rule, updated_at: new Date().toISOString() });
+  if (error) throw error;
+}
+
+export async function deleteRoutingRule(id: string): Promise<void> {
+  const { error } = await supabase.from('etl_routing_rules').delete().eq('id', id);
   if (error) throw error;
 }

@@ -81,10 +81,30 @@ function getCellRaw(sheet: XLSX.WorkSheet, r: number, c: number): unknown {
   return cell.v ?? cell.w;
 }
 
+function detectBankAccountFromHeader(
+  sheet: XLSX.WorkSheet,
+  headerRow: number
+): string | null {
+  const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1');
+  const startRow = range.s.r;
+  const endRow = Math.max(startRow, headerRow - 1);
+
+  for (let r = startRow; r <= endRow; r++) {
+    const parts: string[] = [];
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      parts.push(getCellString(sheet, r, c));
+    }
+    const line = parts.join(' ');
+    const match = line.match(/(?<!\d)(\d{20})(?!\d)/);
+    if (match) return match[1];
+  }
+  return null;
+}
+
 function detectColumns(
   sheet: XLSX.WorkSheet,
   sourceType: EtlSourceType
-): { mapping: IColumnMapping; dataStartRow: number } | null {
+): { mapping: IColumnMapping; dataStartRow: number; headerRow: number } | null {
   const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1');
   const maxScanRow = Math.min(range.s.r + 15, range.e.r);
 
@@ -197,6 +217,7 @@ function detectColumns(
       amountCol: mapping.amountCol,
     },
     dataStartRow: headerRow + (hasSubHeader ? 2 : 1),
+    headerRow,
   };
 }
 
@@ -229,7 +250,7 @@ export function useEtlImport(): IUseEtlImportResult {
         throw new Error(`Не удалось определить колонки карточки счета ${accountName}`);
       }
 
-      const { mapping: col, dataStartRow } = detected;
+      const { mapping: col, dataStartRow, headerRow } = detected;
       const batchId = crypto.randomUUID();
       const entries: Array<Parameters<typeof etlService.insertEntries>[0][0]> = [];
       const skipped: string[] = [];
@@ -238,6 +259,36 @@ export function useEtlImport(): IUseEtlImportResult {
       let ownAccounts: IBankAccount[] = [];
       if (sourceType === 'account_51') {
         try { ownAccounts = await bankAccountsService.getAll(); } catch { /* ignore */ }
+      }
+
+      // Авто-распознавание р/с из шапки карточки сч.51
+      let effectiveBankAccountId: string | null = bankAccountId || null;
+      let detectedBankAccount: IEtlImportResult['detectedBankAccount'] = null;
+      let selectedMismatch = false;
+      if (sourceType === 'account_51') {
+        const detectedNumber = detectBankAccountFromHeader(sheet, headerRow);
+        if (detectedNumber) {
+          const matched = ownAccounts.find((a) => a.account_number === detectedNumber);
+          if (matched) {
+            effectiveBankAccountId = matched.id;
+            detectedBankAccount = {
+              id: matched.id,
+              account_number: matched.account_number,
+              bank_name: matched.bank_name,
+            };
+            if (bankAccountId && bankAccountId !== matched.id) {
+              selectedMismatch = true;
+            }
+          } else {
+            throw new Error(
+              `В файле указан р/с ${detectedNumber}, его нет в справочнике. Добавьте р/с в Справочниках или выберите из списка вручную.`
+            );
+          }
+        } else if (!bankAccountId) {
+          throw new Error(
+            'Не удалось определить р/с из файла и он не выбран вручную. Выберите р/с в списке.'
+          );
+        }
       }
 
       for (let r = dataStartRow; r <= range.e.r; r++) {
@@ -296,7 +347,7 @@ export function useEtlImport(): IUseEtlImportResult {
           contract_name: parsed.contract || null,
           payment_purpose: sourceType === 'account_51' ? (document || null) : null,
           source_type: sourceType,
-          bank_account_id: bankAccountId || null,
+          bank_account_id: sourceType === 'account_51' ? effectiveBankAccountId : (bankAccountId || null),
           target_bank_account_id: targetBankAccountId,
           import_batch_id: batchId,
         });
@@ -314,8 +365,11 @@ export function useEtlImport(): IUseEtlImportResult {
         console.warn('[ETL] Пропущено строк:', skipped);
       }
 
-      // Дедупликация
-      const existing = await etlService.getEntries();
+      // Дедупликация: загружаем только записи в диапазоне дат импортируемого файла
+      const dates = entries.map((e) => e.doc_date).sort();
+      const minDate = dates[0];
+      const maxDate = dates[dates.length - 1];
+      const existing = await etlService.getEntriesForDateRange(minDate, maxDate);
       const existingKeys = new Set(
         existing.map((e) =>
           `${e.doc_date}|${e.amount}|${e.counterparty_name ?? ''}|${e.contract_name ?? ''}|${e.debit_account ?? ''}`
@@ -343,6 +397,8 @@ export function useEtlImport(): IUseEtlImportResult {
         routed: routeResult.routed,
         quarantine: routeResult.quarantine,
         batchId,
+        detectedBankAccount,
+        selectedMismatch,
       };
 
       setLastResult(result);

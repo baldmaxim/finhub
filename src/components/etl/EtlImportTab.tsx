@@ -1,6 +1,6 @@
-import { useRef, useState, useEffect } from 'react';
+import { useRef, useState, useEffect, useMemo } from 'react';
 import type { FC } from 'react';
-import { Button, Table, Tag, message, Card, Space, Statistic, Row, Col, Typography, Upload, Radio, Select } from 'antd';
+import { Button, Table, Tag, message, Card, Space, Statistic, Row, Col, Typography, Upload, Radio, Select, Tooltip } from 'antd';
 import { ReloadOutlined, CloudUploadOutlined, InboxOutlined } from '@ant-design/icons';
 import { useEtlImport } from '../../hooks/useEtlImport';
 import * as etlService from '../../services/etlService';
@@ -62,15 +62,22 @@ export const EtlImportTab: FC = () => {
   useEffect(() => { if (lastResult) loadEntries(); }, [lastResult]);
 
   const handleFile = async (file: File) => {
-    if (sourceType === 'account_51' && !selectedBankAccountId) {
-      message.warning('Выберите расчётный счёт');
-      return;
-    }
     const result = await importFile(file, sourceType, sourceType === 'account_51' ? selectedBankAccountId : null);
     if (result) {
       message.success(
         `Импорт: ${result.total} проводок, ${result.routed} разнесено, ${result.quarantine} в карантине`
       );
+      if (result.detectedBankAccount) {
+        const { account_number, bank_name } = result.detectedBankAccount;
+        const shortNum = `…${account_number.slice(-4)}`;
+        if (result.selectedMismatch) {
+          message.warning(
+            `В файле указан р/с ${shortNum} (${bank_name}) — использован вместо выбранного в списке`
+          );
+        } else {
+          message.info(`Р/с определён из файла: ${shortNum} (${bank_name})`);
+        }
+      }
     }
   };
 
@@ -79,6 +86,24 @@ export const EtlImportTab: FC = () => {
     if (!file) return;
     await handleFile(file);
     if (fileInputRef.current) fileInputRef.current.value = '';
+  };
+
+  const bankAccountsById = useMemo(() => {
+    const map = new Map<string, IBankAccount>();
+    bankAccounts.forEach((a) => map.set(a.id, a));
+    return map;
+  }, [bankAccounts]);
+
+  const formatBankAccountShort = (id: string | null): { short: string; full: string } | null => {
+    if (!id) return null;
+    const a = bankAccountsById.get(id);
+    if (!a) return { short: '…????', full: id };
+    const shortNum = `…${a.account_number.slice(-4)}`;
+    const shortBank = (a.bank_name || '').split(/[\s"«]/)[0] || a.bank_name || '';
+    return {
+      short: shortBank ? `${shortNum} ${shortBank}` : shortNum,
+      full: `${a.account_number} — ${a.bank_name}${a.bik ? ` (БИК ${a.bik})` : ''}`,
+    };
   };
 
   const columns = [
@@ -122,6 +147,23 @@ export const EtlImportTab: FC = () => {
       key: 'source_type',
       width: 80,
       render: (v: string) => <Tag>{SOURCE_TYPE_MAP[v] || v}</Tag>,
+    },
+    {
+      title: 'Р/с',
+      key: 'bank_account',
+      width: 160,
+      ellipsis: true,
+      render: (_: unknown, row: IEtlEntry) => {
+        const src = formatBankAccountShort(row.bank_account_id);
+        if (!src) return '—';
+        if (row.doc_type === 'internal_transfer') {
+          const tgt = formatBankAccountShort(row.target_bank_account_id);
+          const label = `${src.short} → ${tgt ? tgt.short : '?'}`;
+          const full = `${src.full}${tgt ? `  →  ${tgt.full}` : ''}`;
+          return <Tooltip title={full}>{label}</Tooltip>;
+        }
+        return <Tooltip title={src.full}>{src.short}</Tooltip>;
+      },
     },
     {
       title: 'Статус',
@@ -181,7 +223,7 @@ export const EtlImportTab: FC = () => {
 
           {sourceType === 'account_51' && (
             <Select
-              placeholder="Выберите расчётный счёт"
+              placeholder="Р/с (если не определится из файла)"
               value={selectedBankAccountId}
               onChange={setSelectedBankAccountId}
               allowClear
@@ -255,7 +297,7 @@ export const EtlImportTab: FC = () => {
         size="small"
         pagination={{ pageSize: 50, showSizeChanger: true, showTotal: (t) => `Всего: ${t}` }}
         loading={loadingEntries}
-        scroll={{ x: 1000 }}
+        scroll={{ x: 1160 }}
       />
     </div>
   );

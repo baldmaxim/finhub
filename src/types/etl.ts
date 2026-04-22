@@ -56,6 +56,8 @@ export interface IEtlImportResult {
   routed: number;
   quarantine: number;
   batchId: string;
+  detectedBankAccount?: { id: string; account_number: string; bank_name: string } | null;
+  selectedMismatch?: boolean;
 }
 
 export interface IBankAccount {
@@ -66,6 +68,21 @@ export interface IBankAccount {
   description: string | null;
   is_active: boolean;
   is_obs: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface IEtlRoutingRule {
+  id: string;
+  priority: number;
+  match_doc_type: EtlDocType | null;
+  match_is_obs: boolean | null;
+  match_credit_subaccount: string | null;
+  category_id: string | null;
+  create_mirror_expense: boolean;
+  skip_bdds: boolean;
+  is_active: boolean;
+  description: string | null;
   created_at: string;
   updated_at: string;
 }
