@@ -32,14 +32,14 @@ export async function getEntries(status?: string, batchId?: string): Promise<IEt
 export async function getEntriesForDateRange(
   minDate: string,
   maxDate: string
-): Promise<Pick<IEtlEntry, 'doc_date' | 'amount' | 'counterparty_name' | 'contract_name' | 'debit_account'>[]> {
+): Promise<Pick<IEtlEntry, 'doc_date' | 'amount' | 'counterparty_name' | 'contract_name' | 'debit_account' | 'document'>[]> {
   const { data, error } = await supabase
     .from('etl_1c_entries')
-    .select('doc_date, amount, counterparty_name, contract_name, debit_account')
+    .select('doc_date, amount, counterparty_name, contract_name, debit_account, document')
     .gte('doc_date', minDate)
     .lte('doc_date', maxDate);
   if (error) throw error;
-  return (data ?? []) as Pick<IEtlEntry, 'doc_date' | 'amount' | 'counterparty_name' | 'contract_name' | 'debit_account'>[];
+  return (data ?? []) as Pick<IEtlEntry, 'doc_date' | 'amount' | 'counterparty_name' | 'contract_name' | 'debit_account' | 'document'>[];
 }
 
 export async function insertEntries(

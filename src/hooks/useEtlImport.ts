@@ -365,19 +365,29 @@ export function useEtlImport(): IUseEtlImportResult {
         console.warn('[ETL] Пропущено строк:', skipped);
       }
 
-      // Дедупликация: загружаем только записи в диапазоне дат импортируемого файла
+      // Дедупликация: ключ включает document (номер п/п), чтобы две разных оплаты
+      // в один день одному контрагенту на одну сумму не схлопывались.
+      const makeKey = (e: {
+        doc_date: string;
+        amount: number;
+        counterparty_name: string | null;
+        contract_name: string | null;
+        debit_account: string | null;
+        document?: string | null;
+      }) =>
+        `${e.doc_date}|${e.amount}|${e.counterparty_name ?? ''}|${e.contract_name ?? ''}|${e.debit_account ?? ''}|${e.document ?? ''}`;
+
       const dates = entries.map((e) => e.doc_date).sort();
       const minDate = dates[0];
       const maxDate = dates[dates.length - 1];
       const existing = await etlService.getEntriesForDateRange(minDate, maxDate);
-      const existingKeys = new Set(
-        existing.map((e) =>
-          `${e.doc_date}|${e.amount}|${e.counterparty_name ?? ''}|${e.contract_name ?? ''}|${e.debit_account ?? ''}`
-        )
-      );
+      const existingKeys = new Set(existing.map(makeKey));
+      const seen = new Set<string>();
       const uniqueEntries = entries.filter((e) => {
-        const key = `${e.doc_date}|${e.amount}|${e.counterparty_name ?? ''}|${e.contract_name ?? ''}|${e.debit_account ?? ''}`;
-        return !existingKeys.has(key);
+        const key = makeKey(e);
+        if (existingKeys.has(key) || seen.has(key)) return false;
+        seen.add(key);
+        return true;
       });
 
       if (uniqueEntries.length === 0) {
