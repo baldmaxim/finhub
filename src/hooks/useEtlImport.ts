@@ -63,7 +63,8 @@ interface IColumnMapping {
   analyticsKt: number;
   debitAccount: number;
   creditAccount: number;
-  amountCol: number; // Для сч.62 — кредит сумма, для сч.51 — дебет сумма
+  debitAmountCol: number;  // Сумма справа от «Дебет/Счет»
+  creditAmountCol: number; // Сумма справа от «Кредит/Счет»
 }
 
 function getCellString(sheet: XLSX.WorkSheet, r: number, c: number): string {
@@ -179,12 +180,8 @@ function detectColumns(
     }
   }
 
-  // Для сч.51 берём Дебет Сумму (debitCol+1), для сч.62 — Кредит Сумму (creditCol+1)
-  if (sourceType === 'account_51') {
-    mapping.amountCol = (mapping.debitAccount ?? debitCol) + 1;
-  } else {
-    mapping.amountCol = (mapping.creditAccount ?? creditCol) + 1;
-  }
+  mapping.debitAmountCol = (mapping.debitAccount ?? debitCol) + 1;
+  mapping.creditAmountCol = (mapping.creditAccount ?? creditCol) + 1;
 
   let hasSubHeader = false;
   for (let c = range.s.c; c <= range.e.c; c++) {
@@ -198,10 +195,11 @@ function detectColumns(
     sourceType, docDate: mapping.docDate, document: mapping.document,
     analyticsDt: mapping.analyticsDt, analyticsKt: mapping.analyticsKt,
     debitAccount: mapping.debitAccount, creditAccount: mapping.creditAccount,
-    amountCol: mapping.amountCol, debitCol, creditCol, hasSubHeader,
+    debitAmountCol: mapping.debitAmountCol, creditAmountCol: mapping.creditAmountCol,
+    debitCol, creditCol, hasSubHeader,
   });
 
-  if (mapping.docDate === undefined || mapping.amountCol === undefined) {
+  if (mapping.docDate === undefined || mapping.debitAmountCol === undefined || mapping.creditAmountCol === undefined) {
     console.error('[ETL] Не удалось определить обязательные колонки');
     return null;
   }
@@ -214,7 +212,8 @@ function detectColumns(
       analyticsKt: mapping.analyticsKt ?? -1,
       debitAccount: mapping.debitAccount ?? -1,
       creditAccount: mapping.creditAccount ?? -1,
-      amountCol: mapping.amountCol,
+      debitAmountCol: mapping.debitAmountCol,
+      creditAmountCol: mapping.creditAmountCol,
     },
     dataStartRow: headerRow + (hasSubHeader ? 2 : 1),
     headerRow,
@@ -291,6 +290,9 @@ export function useEtlImport(): IUseEtlImportResult {
         }
       }
 
+      const findOwnAccountInText = (text: string) =>
+        ownAccounts.find((a) => text.includes(a.account_number)) ?? null;
+
       for (let r = dataStartRow; r <= range.e.r; r++) {
         const firstCell = getCellString(sheet, r, col.docDate);
         if (!firstCell) continue;
@@ -303,36 +305,66 @@ export function useEtlImport(): IUseEtlImportResult {
           continue;
         }
 
-        const amount = parseAmount(getCellRaw(sheet, r, col.amountCol));
-        if (amount === 0) continue;
-
         const document = getCellString(sheet, r, col.document);
         const analyticsDt = getCellString(sheet, r, col.analyticsDt);
         const analyticsKt = getCellString(sheet, r, col.analyticsKt);
         const debitAccount = getCellString(sheet, r, col.debitAccount);
         const creditAccount = getCellString(sheet, r, col.creditAccount);
+        const debitAmount = parseAmount(getCellRaw(sheet, r, col.debitAmountCol));
+        const creditAmount = parseAmount(getCellRaw(sheet, r, col.creditAmountCol));
 
-        // Для сч.51: контрагент из Аналитика Кт, назначение платежа из Документ
-        // Для сч.62: контрагент из Аналитика Кт, тип по дебет счёту
-        const parsed = analyticsKt ? parseAnalyticsKt(analyticsKt) : { counterparty: '', contract: '' };
-
+        let amount = 0;
         let docType: EtlDocType;
+        let counterpartyText = '';
         let targetBankAccountId: string | null = null;
 
-        if (sourceType === 'account_51') {
-          // Проверяем: если контрагент начинается с номера нашего р/с — внутренний перевод
-          const matchedAccount = ownAccounts.find((a) =>
-            parsed.counterparty.startsWith(a.account_number)
-          );
-          if (matchedAccount) {
-            docType = 'internal_transfer';
-            targetBankAccountId = matchedAccount.id;
-          } else {
-            docType = 'receipt';
-          }
-        } else {
+        if (sourceType === 'account_62') {
+          amount = creditAmount;
+          if (amount === 0) continue;
+          counterpartyText = analyticsKt;
           docType = detectDocType(debitAccount);
+        } else {
+          // account_51 — различаем приход/расход/внутренний перевод
+          const is51Dt = debitAccount.startsWith('51');
+          const is51Kt = creditAccount.startsWith('51');
+
+          if (is51Dt && !is51Kt) {
+            // Приход на наш 51 (Дт 51, Кт 62/60/76/…)
+            amount = debitAmount;
+            if (amount === 0) continue;
+            counterpartyText = analyticsKt;
+            docType = creditAccount.startsWith('60') || creditAccount.startsWith('76')
+              ? 'debt_correction'
+              : 'receipt';
+          } else if (!is51Dt && is51Kt) {
+            // Расход с нашего 51 (Дт 91/60/76/…, Кт 51)
+            amount = creditAmount;
+            if (amount === 0) continue;
+            counterpartyText = analyticsDt;
+            docType = 'expense';
+          } else if (is51Dt && is51Kt) {
+            // Внутренний перевод между нашими р/с (Дт 51, Кт 51)
+            docType = 'internal_transfer';
+            if (debitAmount > 0) {
+              // Приход с другого нашего р/с → source в Аналитика Кт
+              amount = debitAmount;
+              counterpartyText = analyticsKt;
+              targetBankAccountId = findOwnAccountInText(analyticsKt)?.id ?? null;
+            } else if (creditAmount > 0) {
+              // Уход на другой наш р/с → destination в Аналитика Дт
+              amount = creditAmount;
+              counterpartyText = analyticsDt;
+              targetBankAccountId = findOwnAccountInText(analyticsDt)?.id ?? null;
+            } else {
+              continue;
+            }
+          } else {
+            // Обе стороны не 51 — мусор, пропускаем
+            continue;
+          }
         }
+
+        const parsed = counterpartyText ? parseAnalyticsKt(counterpartyText) : { counterparty: '', contract: '' };
 
         entries.push({
           doc_date: docDate,

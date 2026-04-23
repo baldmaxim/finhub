@@ -1,4 +1,4 @@
-export type EtlDocType = 'receipt' | 'debt_correction' | 'internal_transfer' | 'other';
+export type EtlDocType = 'receipt' | 'debt_correction' | 'internal_transfer' | 'expense' | 'other';
 export type EtlEntryStatus = 'pending' | 'routed' | 'quarantine' | 'manual';
 export type EtlRouteMethod = 'auto' | 'regex' | 'manual';
 export type EtlSourceType = 'account_62' | 'account_51';
