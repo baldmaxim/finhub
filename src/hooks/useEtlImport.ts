@@ -45,14 +45,14 @@ function detectDocType(debitAccount: string): EtlDocType {
 
 function parseAnalyticsKt(text: string): { counterparty: string; contract: string } {
   const trimmed = text.trim();
-  const contractMatch = trimmed.match(/(ДГ\s*№[^,\n]+|Договор\s*№[^,\n]+|Дог\.\s*№[^,\n]+)/i);
-  if (contractMatch) {
-    const contractStart = trimmed.indexOf(contractMatch[0]);
-    const counterparty = trimmed.slice(0, contractStart).trim().replace(/\s+/g, ' ');
-    const contract = contractMatch[0].trim();
-    return { counterparty, contract };
-  }
   const firstLine = trimmed.split('\n')[0].trim();
+  // № опциональный: ловим «Договор К-14 …» наравне с «Договор №К-14 …».
+  // Контрагента всегда берём из первой строки, т.к. между ФИО и договором
+  // может быть адрес (см. карточку сч.51 по СЗ СТАДИОН СПАРТАК).
+  const contractMatch = trimmed.match(/(ДГ\s*№?\s*[^,\n]+|Договор\s*№?\s*[^,\n]+|Дог\.\s*№?\s*[^,\n]+)/i);
+  if (contractMatch) {
+    return { counterparty: firstLine, contract: contractMatch[0].trim() };
+  }
   return { counterparty: firstLine, contract: '' };
 }
 
