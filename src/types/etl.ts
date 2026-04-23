@@ -95,6 +95,7 @@ export interface IBankAccountBalance {
   description: string | null;
   is_active: boolean;
   inflows: number;
+  expenses: number;
   transfers_in: number;
   transfers_out: number;
   balance: number;

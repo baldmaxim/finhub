@@ -51,6 +51,14 @@ export const BankAccountBalances: FC = () => {
       render: (v: number) => <span style={{ color: '#52c41a' }}>{fmtMoney(v)}</span>,
     },
     {
+      title: 'Расходы',
+      dataIndex: 'expenses',
+      key: 'expenses',
+      width: 130,
+      align: 'right' as const,
+      render: (v: number) => v > 0 ? <span style={{ color: '#cf1322' }}>−{fmtMoney(v)}</span> : '—',
+    },
+    {
       title: 'Перев. вход',
       dataIndex: 'transfers_in',
       key: 'transfers_in',
@@ -115,16 +123,21 @@ export const BankAccountBalances: FC = () => {
               </Typography.Text>
             </Table.Summary.Cell>
             <Table.Summary.Cell index={2} align="right">
+              <Typography.Text strong style={{ color: '#cf1322' }}>
+                −{fmtMoney(balances.reduce((s, b) => s + b.expenses, 0))}
+              </Typography.Text>
+            </Table.Summary.Cell>
+            <Table.Summary.Cell index={3} align="right">
               <Typography.Text strong style={{ color: '#1890ff' }}>
                 {fmtMoney(balances.reduce((s, b) => s + b.transfers_in, 0))}
               </Typography.Text>
             </Table.Summary.Cell>
-            <Table.Summary.Cell index={3} align="right">
+            <Table.Summary.Cell index={4} align="right">
               <Typography.Text strong style={{ color: '#fa8c16' }}>
                 {fmtMoney(balances.reduce((s, b) => s + b.transfers_out, 0))}
               </Typography.Text>
             </Table.Summary.Cell>
-            <Table.Summary.Cell index={4} align="right">
+            <Table.Summary.Cell index={5} align="right">
               <Typography.Text strong>{fmtMoney(total)}</Typography.Text>
             </Table.Summary.Cell>
           </Table.Summary.Row>
