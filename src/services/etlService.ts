@@ -33,13 +33,23 @@ export async function getEntriesForDateRange(
   minDate: string,
   maxDate: string
 ): Promise<Pick<IEtlEntry, 'doc_date' | 'amount' | 'counterparty_name' | 'contract_name' | 'debit_account' | 'document'>[]> {
-  const { data, error } = await supabase
-    .from('etl_1c_entries')
-    .select('doc_date, amount, counterparty_name, contract_name, debit_account, document')
-    .gte('doc_date', minDate)
-    .lte('doc_date', maxDate);
-  if (error) throw error;
-  return (data ?? []) as Pick<IEtlEntry, 'doc_date' | 'amount' | 'counterparty_name' | 'contract_name' | 'debit_account' | 'document'>[];
+  type Row = Pick<IEtlEntry, 'doc_date' | 'amount' | 'counterparty_name' | 'contract_name' | 'debit_account' | 'document'>;
+  const all: Row[] = [];
+  let from = 0;
+  while (true) {
+    const { data, error } = await supabase
+      .from('etl_1c_entries')
+      .select('doc_date, amount, counterparty_name, contract_name, debit_account, document')
+      .gte('doc_date', minDate)
+      .lte('doc_date', maxDate)
+      .range(from, from + BATCH_SIZE - 1);
+    if (error) throw error;
+    if (!data || data.length === 0) break;
+    all.push(...(data as Row[]));
+    if (data.length < BATCH_SIZE) break;
+    from += BATCH_SIZE;
+  }
+  return all;
 }
 
 export async function insertEntries(
