@@ -1,5 +1,5 @@
 import { supabase } from '../config/supabase';
-import type { IBankAccount, IBankAccountBalance } from '../types/etl';
+import type { IBankAccount, IBankAccountBalance, IBankAccountMonthlyBalance } from '../types/etl';
 
 export async function getAll(): Promise<IBankAccount[]> {
   const { data, error } = await supabase
@@ -40,4 +40,14 @@ export async function getBalances(): Promise<IBankAccountBalance[]> {
     .select('*');
   if (error) throw error;
   return data as IBankAccountBalance[];
+}
+
+export async function getMonthlyBalances(accountId: string): Promise<IBankAccountMonthlyBalance[]> {
+  const { data, error } = await supabase
+    .from('bank_account_balances_monthly')
+    .select('*')
+    .eq('account_id', accountId)
+    .order('month_start');
+  if (error) throw error;
+  return data as IBankAccountMonthlyBalance[];
 }

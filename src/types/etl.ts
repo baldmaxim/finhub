@@ -100,3 +100,16 @@ export interface IBankAccountBalance {
   transfers_out: number;
   balance: number;
 }
+
+export interface IBankAccountMonthlyBalance {
+  account_id: string;
+  account_number: string;
+  month: string;
+  month_start: string;
+  inflows: number;
+  expenses: number;
+  transfers_in: number;
+  transfers_out: number;
+  month_delta: number;
+  running_balance: number;
+}

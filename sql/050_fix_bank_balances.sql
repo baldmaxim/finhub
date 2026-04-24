@@ -10,7 +10,9 @@
 --        - если в analytics_kt → это уход с него.
 --      Так одна и та же строка ЕЁ-КАРТОЧКИ корректно участвует в балансе нужного р/с.
 
-CREATE OR REPLACE VIEW bank_account_balances AS
+DROP VIEW IF EXISTS bank_account_balances;
+
+CREATE VIEW bank_account_balances AS
 WITH
 inflows AS (
   SELECT bank_account_id AS account_id, SUM(amount) AS total
