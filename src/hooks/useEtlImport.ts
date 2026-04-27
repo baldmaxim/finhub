@@ -397,8 +397,11 @@ export function useEtlImport(): IUseEtlImportResult {
         console.warn('[ETL] Пропущено строк:', skipped);
       }
 
-      // Дедупликация: ключ включает document (номер п/п), чтобы две разных оплаты
-      // в один день одному контрагенту на одну сумму не схлопывались.
+      // Дедупликация: ключ включает analytics_dt + analytics_kt, чтобы строки одного
+      // СП-документа с одинаковой суммой (разбиение платежа по нескольким
+      // накладным/субсчетам, частая ситуация в карточке сч.51) не схлопывались.
+      // Без этого, например, СП00-005212 на 258 000 × 12 рядов превращался в одну
+      // запись и из баланса терялось 11 × 258 000 = 2 838 000 ₽.
       const makeKey = (e: {
         doc_date: string;
         amount: number;
@@ -406,8 +409,10 @@ export function useEtlImport(): IUseEtlImportResult {
         contract_name: string | null;
         debit_account: string | null;
         document?: string | null;
+        analytics_dt?: string | null;
+        analytics_kt?: string | null;
       }) =>
-        `${e.doc_date}|${e.amount}|${e.counterparty_name ?? ''}|${e.contract_name ?? ''}|${e.debit_account ?? ''}|${e.document ?? ''}`;
+        `${e.doc_date}|${e.amount}|${e.counterparty_name ?? ''}|${e.contract_name ?? ''}|${e.debit_account ?? ''}|${e.document ?? ''}|${e.analytics_dt ?? ''}|${e.analytics_kt ?? ''}`;
 
       const dates = entries.map((e) => e.doc_date).sort();
       const minDate = dates[0];
