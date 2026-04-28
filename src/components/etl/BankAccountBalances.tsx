@@ -55,42 +55,42 @@ const MonthlyBreakdown: FC<{ accountId: string; accountNumber: string }> = ({ ac
       title: 'Поступления',
       dataIndex: 'inflows',
       key: 'inflows',
-      width: 130,
+      width: 180,
       align: 'right' as const,
-      render: (v: number) => v > 0 ? <span style={{ color: '#52c41a' }}>{fmtMoney(v)}</span> : '—',
+      render: (v: number) => v > 0 ? <span style={{ color: '#52c41a', whiteSpace: 'nowrap' }}>{fmtMoney(v)}</span> : '—',
     },
     {
       title: 'Расходы',
       dataIndex: 'expenses',
       key: 'expenses',
-      width: 130,
+      width: 180,
       align: 'right' as const,
-      render: (v: number) => v > 0 ? <span style={{ color: '#cf1322' }}>−{fmtMoney(v)}</span> : '—',
+      render: (v: number) => v > 0 ? <span style={{ color: '#cf1322', whiteSpace: 'nowrap' }}>−{fmtMoney(v)}</span> : '—',
     },
     {
       title: 'Перев. вход',
       dataIndex: 'transfers_in',
       key: 'transfers_in',
-      width: 130,
+      width: 180,
       align: 'right' as const,
-      render: (v: number) => v > 0 ? <span style={{ color: '#1890ff' }}>+{fmtMoney(v)}</span> : '—',
+      render: (v: number) => v > 0 ? <span style={{ color: '#1890ff', whiteSpace: 'nowrap' }}>+{fmtMoney(v)}</span> : '—',
     },
     {
       title: 'Перев. выход',
       dataIndex: 'transfers_out',
       key: 'transfers_out',
-      width: 130,
+      width: 180,
       align: 'right' as const,
-      render: (v: number) => v > 0 ? <span style={{ color: '#fa8c16' }}>−{fmtMoney(v)}</span> : '—',
+      render: (v: number) => v > 0 ? <span style={{ color: '#fa8c16', whiteSpace: 'nowrap' }}>−{fmtMoney(v)}</span> : '—',
     },
     {
       title: 'Оборот',
       dataIndex: 'month_delta',
       key: 'month_delta',
-      width: 130,
+      width: 180,
       align: 'right' as const,
       render: (v: number) => (
-        <span style={{ color: v >= 0 ? '#52c41a' : '#cf1322' }}>
+        <span style={{ color: v >= 0 ? '#52c41a' : '#cf1322', whiteSpace: 'nowrap' }}>
           {v >= 0 ? '+' : ''}{fmtMoney(v)}
         </span>
       ),
@@ -99,10 +99,10 @@ const MonthlyBreakdown: FC<{ accountId: string; accountNumber: string }> = ({ ac
       title: 'Остаток',
       dataIndex: 'running_balance',
       key: 'running_balance',
-      width: 150,
+      width: 200,
       align: 'right' as const,
       render: (v: number) => (
-        <Tag color={v > 0 ? 'green' : v < 0 ? 'red' : 'default'} style={{ fontWeight: 600 }}>
+        <Tag color={v > 0 ? 'green' : v < 0 ? 'red' : 'default'} style={{ fontWeight: 600, whiteSpace: 'nowrap' }}>
           {fmtMoney(v)}
         </Tag>
       ),
@@ -160,42 +160,42 @@ export const BankAccountBalances: FC = () => {
       title: 'Поступления',
       dataIndex: 'inflows',
       key: 'inflows',
-      width: 130,
+      width: 180,
       align: 'right' as const,
-      render: (v: number) => <span style={{ color: '#52c41a' }}>{fmtMoney(v)}</span>,
+      render: (v: number) => <span style={{ color: '#52c41a', whiteSpace: 'nowrap' }}>{fmtMoney(v)}</span>,
     },
     {
       title: 'Расходы',
       dataIndex: 'expenses',
       key: 'expenses',
-      width: 130,
+      width: 180,
       align: 'right' as const,
-      render: (v: number) => v > 0 ? <span style={{ color: '#cf1322' }}>−{fmtMoney(v)}</span> : '—',
+      render: (v: number) => v > 0 ? <span style={{ color: '#cf1322', whiteSpace: 'nowrap' }}>−{fmtMoney(v)}</span> : '—',
     },
     {
       title: 'Перев. вход',
       dataIndex: 'transfers_in',
       key: 'transfers_in',
-      width: 130,
+      width: 180,
       align: 'right' as const,
-      render: (v: number) => v > 0 ? <span style={{ color: '#1890ff' }}>+{fmtMoney(v)}</span> : '—',
+      render: (v: number) => v > 0 ? <span style={{ color: '#1890ff', whiteSpace: 'nowrap' }}>+{fmtMoney(v)}</span> : '—',
     },
     {
       title: 'Перев. выход',
       dataIndex: 'transfers_out',
       key: 'transfers_out',
-      width: 130,
+      width: 180,
       align: 'right' as const,
-      render: (v: number) => v > 0 ? <span style={{ color: '#fa8c16' }}>−{fmtMoney(v)}</span> : '—',
+      render: (v: number) => v > 0 ? <span style={{ color: '#fa8c16', whiteSpace: 'nowrap' }}>−{fmtMoney(v)}</span> : '—',
     },
     {
       title: 'Остаток',
       dataIndex: 'balance',
       key: 'balance',
-      width: 150,
+      width: 200,
       align: 'right' as const,
       render: (v: number) => (
-        <Tag color={v > 0 ? 'green' : v < 0 ? 'red' : 'default'} style={{ fontSize: 13, fontWeight: 600 }}>
+        <Tag color={v > 0 ? 'green' : v < 0 ? 'red' : 'default'} style={{ fontSize: 13, fontWeight: 600, whiteSpace: 'nowrap' }}>
           {fmtMoney(v)}
         </Tag>
       ),
@@ -228,7 +228,7 @@ export const BankAccountBalances: FC = () => {
         size="small"
         pagination={false}
         loading={loading}
-        scroll={{ x: 700 }}
+        scroll={{ x: 1200 }}
         expandable={{
           expandedRowKeys: expandedKeys,
           onExpandedRowsChange: (keys) => setExpandedKeys(keys),
@@ -243,27 +243,27 @@ export const BankAccountBalances: FC = () => {
               <Typography.Text strong>Итого ({balances.length} счетов)</Typography.Text>
             </Table.Summary.Cell>
             <Table.Summary.Cell index={1} align="right">
-              <Typography.Text strong style={{ color: '#52c41a' }}>
+              <Typography.Text strong style={{ color: '#52c41a', whiteSpace: 'nowrap' }}>
                 {fmtMoney(balances.reduce((s, b) => s + b.inflows, 0))}
               </Typography.Text>
             </Table.Summary.Cell>
             <Table.Summary.Cell index={2} align="right">
-              <Typography.Text strong style={{ color: '#cf1322' }}>
+              <Typography.Text strong style={{ color: '#cf1322', whiteSpace: 'nowrap' }}>
                 −{fmtMoney(balances.reduce((s, b) => s + b.expenses, 0))}
               </Typography.Text>
             </Table.Summary.Cell>
             <Table.Summary.Cell index={3} align="right">
-              <Typography.Text strong style={{ color: '#1890ff' }}>
+              <Typography.Text strong style={{ color: '#1890ff', whiteSpace: 'nowrap' }}>
                 {fmtMoney(balances.reduce((s, b) => s + b.transfers_in, 0))}
               </Typography.Text>
             </Table.Summary.Cell>
             <Table.Summary.Cell index={4} align="right">
-              <Typography.Text strong style={{ color: '#fa8c16' }}>
+              <Typography.Text strong style={{ color: '#fa8c16', whiteSpace: 'nowrap' }}>
                 {fmtMoney(balances.reduce((s, b) => s + b.transfers_out, 0))}
               </Typography.Text>
             </Table.Summary.Cell>
             <Table.Summary.Cell index={5} align="right">
-              <Typography.Text strong>{fmtMoney(total)}</Typography.Text>
+              <Typography.Text strong style={{ whiteSpace: 'nowrap' }}>{fmtMoney(total)}</Typography.Text>
             </Table.Summary.Cell>
           </Table.Summary.Row>
         ) : null}
