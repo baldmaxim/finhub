@@ -27,13 +27,16 @@ function parseDate(val: unknown): string | null {
 }
 
 function parseAmount(val: unknown): number {
-  if (typeof val === 'number') return Math.abs(val);
+  // Знак сохраняем: в карточке сч.51 1С сторнирующие проводки отражаются
+  // парой строк (−X и +X), и Math.abs() их превращал в две положительные
+  // суммы, что искажало баланс (например, +10 900 ₽ за окт-нояб 2025).
+  if (typeof val === 'number') return val;
   const str = String(val ?? '')
     .replace(/\s/g, '')
     .replace(',', '.')
     .replace(/[КкДд]$/, '');
   const num = parseFloat(str);
-  return isNaN(num) ? 0 : Math.abs(num);
+  return isNaN(num) ? 0 : num;
 }
 
 function detectDocType(debitAccount: string): EtlDocType {
@@ -345,12 +348,12 @@ export function useEtlImport(): IUseEtlImportResult {
           } else if (is51Dt && is51Kt) {
             // Внутренний перевод между нашими р/с (Дт 51, Кт 51)
             docType = 'internal_transfer';
-            if (debitAmount > 0) {
+            if (debitAmount !== 0) {
               // Приход с другого нашего р/с → source в Аналитика Кт
               amount = debitAmount;
               counterpartyText = analyticsKt;
               targetBankAccountId = findOwnAccountInText(analyticsKt)?.id ?? null;
-            } else if (creditAmount > 0) {
+            } else if (creditAmount !== 0) {
               // Уход на другой наш р/с → destination в Аналитика Дт
               amount = creditAmount;
               counterpartyText = analyticsDt;
