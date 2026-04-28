@@ -99,6 +99,7 @@ export interface IBankAccountBalance {
   transfers_in: number;
   transfers_out: number;
   balance: number;
+  last_operation_date: string | null;
 }
 
 export interface IBankAccountMonthlyBalance {

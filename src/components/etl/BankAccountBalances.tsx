@@ -19,6 +19,12 @@ const fmtMonth = (monthStr: string) => {
   return `${MONTH_NAMES_RU[idx] ?? m} ${y}`;
 };
 
+const fmtDate = (dateStr: string | null) => {
+  if (!dateStr) return '—';
+  const [y, m, d] = dateStr.split('-');
+  return `${d}.${m}.${y}`;
+};
+
 interface IMonthlyState {
   loading: boolean;
   data: IBankAccountMonthlyBalance[] | null;
@@ -157,6 +163,18 @@ export const BankAccountBalances: FC = () => {
       ),
     },
     {
+      title: 'Актуально на',
+      dataIndex: 'last_operation_date',
+      key: 'last_operation_date',
+      width: 130,
+      align: 'center' as const,
+      render: (v: string | null) => (
+        <Typography.Text type={v ? undefined : 'secondary'} style={{ fontSize: 12, whiteSpace: 'nowrap' }}>
+          {fmtDate(v)}
+        </Typography.Text>
+      ),
+    },
+    {
       title: 'Поступления',
       dataIndex: 'inflows',
       key: 'inflows',
@@ -228,7 +246,7 @@ export const BankAccountBalances: FC = () => {
         size="small"
         pagination={false}
         loading={loading}
-        scroll={{ x: 1200 }}
+        scroll={{ x: 1330 }}
         expandable={{
           expandedRowKeys: expandedKeys,
           onExpandedRowsChange: (keys) => setExpandedKeys(keys),
@@ -242,27 +260,28 @@ export const BankAccountBalances: FC = () => {
             <Table.Summary.Cell index={0}>
               <Typography.Text strong>Итого ({balances.length} счетов)</Typography.Text>
             </Table.Summary.Cell>
-            <Table.Summary.Cell index={1} align="right">
+            <Table.Summary.Cell index={1} />
+            <Table.Summary.Cell index={2} align="right">
               <Typography.Text strong style={{ color: '#52c41a', whiteSpace: 'nowrap' }}>
                 {fmtMoney(balances.reduce((s, b) => s + b.inflows, 0))}
               </Typography.Text>
             </Table.Summary.Cell>
-            <Table.Summary.Cell index={2} align="right">
+            <Table.Summary.Cell index={3} align="right">
               <Typography.Text strong style={{ color: '#cf1322', whiteSpace: 'nowrap' }}>
                 −{fmtMoney(balances.reduce((s, b) => s + b.expenses, 0))}
               </Typography.Text>
             </Table.Summary.Cell>
-            <Table.Summary.Cell index={3} align="right">
+            <Table.Summary.Cell index={4} align="right">
               <Typography.Text strong style={{ color: '#1890ff', whiteSpace: 'nowrap' }}>
                 {fmtMoney(balances.reduce((s, b) => s + b.transfers_in, 0))}
               </Typography.Text>
             </Table.Summary.Cell>
-            <Table.Summary.Cell index={4} align="right">
+            <Table.Summary.Cell index={5} align="right">
               <Typography.Text strong style={{ color: '#fa8c16', whiteSpace: 'nowrap' }}>
                 {fmtMoney(balances.reduce((s, b) => s + b.transfers_out, 0))}
               </Typography.Text>
             </Table.Summary.Cell>
-            <Table.Summary.Cell index={5} align="right">
+            <Table.Summary.Cell index={6} align="right">
               <Typography.Text strong style={{ whiteSpace: 'nowrap' }}>{fmtMoney(total)}</Typography.Text>
             </Table.Summary.Cell>
           </Table.Summary.Row>
