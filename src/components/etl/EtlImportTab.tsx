@@ -83,6 +83,11 @@ export const EtlImportTab: FC = () => {
         const fmtBalance = balance.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         const [y, m, d] = date.split('-');
         message.info(`Начальное сальдо обновлено: ${fmtBalance} ₽ на ${d}.${m}.${y}`);
+      } else if (sourceType === 'account_51') {
+        message.warning(
+          'Начальное сальдо не определено из файла. Проверьте строку «Сальдо на начало» и дату периода в шапке карточки — баланс р/с может не сойтись с 1С.',
+          8
+        );
       }
     }
   };

@@ -47,15 +47,15 @@ export async function getEntries(status?: string, batchId?: string): Promise<IEt
 export async function getEntriesForDateRange(
   minDate: string,
   maxDate: string
-): Promise<Pick<IEtlEntry, 'doc_date' | 'amount' | 'counterparty_name' | 'contract_name' | 'debit_account' | 'document' | 'analytics_dt' | 'analytics_kt'>[]> {
-  type Row = Pick<IEtlEntry, 'doc_date' | 'amount' | 'counterparty_name' | 'contract_name' | 'debit_account' | 'document' | 'analytics_dt' | 'analytics_kt'> & { id: string };
+): Promise<Pick<IEtlEntry, 'doc_date' | 'amount' | 'counterparty_name' | 'contract_name' | 'debit_account' | 'document' | 'analytics_dt' | 'analytics_kt' | 'row_index'>[]> {
+  type Row = Pick<IEtlEntry, 'doc_date' | 'amount' | 'counterparty_name' | 'contract_name' | 'debit_account' | 'document' | 'analytics_dt' | 'analytics_kt' | 'row_index'> & { id: string };
   const all: Row[] = [];
   let cursor: { docDate: string; id: string } | null = null;
 
   while (true) {
     let query = supabase
       .from('etl_1c_entries')
-      .select('id, doc_date, amount, counterparty_name, contract_name, debit_account, document, analytics_dt, analytics_kt')
+      .select('id, doc_date, amount, counterparty_name, contract_name, debit_account, document, analytics_dt, analytics_kt, row_index')
       .gte('doc_date', minDate)
       .lte('doc_date', maxDate)
       .order('doc_date', { ascending: false })
@@ -97,6 +97,7 @@ export async function insertEntries(
     bank_account_id?: string | null;
     target_bank_account_id?: string | null;
     import_batch_id: string;
+    row_index?: number;
   }>
 ): Promise<void> {
   for (let i = 0; i < entries.length; i += BATCH_SIZE) {
@@ -128,15 +129,43 @@ export async function manualRoute(
 }
 
 export async function rerouteQuarantine(): Promise<{ routed: number; quarantine: number }> {
-  const { data, error } = await supabase.rpc('etl_reroute_quarantine', {});
-  if (error) throw error;
-  // Fire-and-forget: пересчёт MV остатков по р/с — отдельным RPC, чтобы
-  // оба запроса уложились в 60s прокси Supabase. Ошибка тут не блокирует
-  // основной результат маршрутизации (миграция 058).
-  void refreshBankBalances().catch((e) => {
-    console.warn('[ETL] refresh_bank_balances не успел:', e);
+  // С миграции 060 etl_reroute_quarantine — чанковая (по p_limit). Клиент
+  // в цикле зовёт RPC с одной session, пока RPC не вернёт processed=0.
+  // Каждый вызов укладывается в 60s прокси Supabase.
+  const session = (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const CHUNK_SIZE = 2000;
+  const MAX_ITERATIONS = 50;
+
+  let totalRouted = 0;
+  let totalQuarantine = 0;
+  let iterations = 0;
+
+  while (iterations < MAX_ITERATIONS) {
+    const { data, error } = await supabase.rpc('etl_reroute_quarantine', {
+      p_limit: CHUNK_SIZE,
+      p_session: session,
+    });
+    if (error) throw error;
+    const result = data as {
+      routed: number;
+      quarantine: number;
+      processed: number;
+      remaining: number;
+    };
+    totalRouted     += result.routed;
+    totalQuarantine += result.quarantine;
+    iterations += 1;
+    if (result.processed === 0) break;
+  }
+
+  // sync_bdds + refresh_bank_balances запускаем в фоне после всех чанков.
+  void syncBdds().catch((e) => {
+    console.warn('[ETL] sync_bdds после reroute не успел:', e);
   });
-  return data as { routed: number; quarantine: number };
+
+  return { routed: totalRouted, quarantine: totalQuarantine };
 }
 
 export async function syncBdds(): Promise<{ deleted: number; inserted: number }> {

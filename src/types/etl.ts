@@ -28,6 +28,7 @@ export interface IEtlEntry {
   imported_at: string;
   routed_at: string | null;
   created_at: string;
+  row_index: number;
 }
 
 export interface IEtlContractMap {

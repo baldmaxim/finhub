@@ -456,12 +456,13 @@ export function useEtlImport(): IUseEtlImportResult {
         console.warn('[ETL] Пропущено строк:', skipped);
       }
 
-      // Дедупликация: ключ включает analytics_dt + analytics_kt, чтобы строки одного
-      // СП-документа с одинаковой суммой (разбиение платежа по нескольким
-      // накладным/субсчетам, частая ситуация в карточке сч.51) не схлопывались.
-      // Без этого, например, СП00-005212 на 258 000 × 12 рядов превращался в одну
-      // запись и из баланса терялось 11 × 258 000 = 2 838 000 ₽.
-      const makeKey = (e: {
+      // Дедупликация: бизнес-ключ включает analytics_dt + analytics_kt, чтобы строки
+      // одного СП-документа с разными накладными/субсчетами не схлопывались. Если
+      // даже все 8 полей ключа совпадают (реальные парные проводки — например,
+      // возвраты гарантийных удержаний по разным ведомостям с одинаковой суммой
+      // и реквизитами), различаем порядковым row_index в рамках одного бизнес-ключа.
+      // Без row_index терялось 2 440 425,25 ₽ на р/с 1762 (27-28.11.2024).
+      const makeBaseKey = (e: {
         doc_date: string;
         amount: number;
         counterparty_name: string | null;
@@ -477,14 +478,28 @@ export function useEtlImport(): IUseEtlImportResult {
       const minDate = dates[0];
       const maxDate = dates[dates.length - 1];
       const existing = await etlService.getEntriesForDateRange(minDate, maxDate);
-      const existingKeys = new Set(existing.map(makeKey));
-      const seen = new Set<string>();
-      const uniqueEntries = entries.filter((e) => {
-        const key = makeKey(e);
-        if (existingKeys.has(key) || seen.has(key)) return false;
-        seen.add(key);
-        return true;
-      });
+
+      // Для каждого бизнес-ключа собираем множество row_index, которые УЖЕ есть в БД.
+      const existingIndices = new Map<string, Set<number>>();
+      for (const e of existing) {
+        const k = makeBaseKey(e);
+        let set = existingIndices.get(k);
+        if (!set) { set = new Set(); existingIndices.set(k, set); }
+        set.add(e.row_index ?? 0);
+      }
+
+      // Проходим entries в исходном порядке, присваиваем row_index = occurrence
+      // в текущем батче. Если такой (base_key, row_index) уже есть в БД — это дубль.
+      const occurrenceCounter = new Map<string, number>();
+      const uniqueEntries: typeof entries = [];
+      for (const e of entries) {
+        const k = makeBaseKey(e);
+        const idx = occurrenceCounter.get(k) ?? 0;
+        occurrenceCounter.set(k, idx + 1);
+        e.row_index = idx;
+        if (existingIndices.get(k)?.has(idx)) continue;
+        uniqueEntries.push(e);
+      }
 
       if (uniqueEntries.length === 0) {
         throw new Error(`Все ${entries.length} проводок уже были импортированы ранее`);
