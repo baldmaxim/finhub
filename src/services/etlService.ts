@@ -4,26 +4,41 @@ import type { IEtlEntry, IEtlContractMap, IEtlPaymentMask, IEtlRoutingRule } fro
 const BATCH_SIZE = 500;
 
 // === Записи (проводки) ===
+//
+// Пагинация — keyset (а не offset). Глубокий offset на 200 k+ строк уходит
+// за statement_timeout и Supabase отдаёт 500. Курсор по (doc_date, id)
+// использует индекс idx_etl_entries_doc_date_id (см. миграцию 057).
 
 export async function getEntries(status?: string, batchId?: string): Promise<IEtlEntry[]> {
-  let query = supabase
-    .from('etl_1c_entries')
-    .select('*')
-    .order('doc_date', { ascending: false });
-
-  if (status) query = query.eq('status', status);
-  if (batchId) query = query.eq('import_batch_id', batchId);
-
   const allData: IEtlEntry[] = [];
-  let from = 0;
+  let cursor: { docDate: string; id: string } | null = null;
 
   while (true) {
-    const { data, error } = await query.range(from, from + BATCH_SIZE - 1);
+    let query = supabase
+      .from('etl_1c_entries')
+      .select('*')
+      .order('doc_date', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(BATCH_SIZE);
+
+    if (status) query = query.eq('status', status);
+    if (batchId) query = query.eq('import_batch_id', batchId);
+
+    if (cursor) {
+      // (doc_date, id) < (cursor.docDate, cursor.id) — лексикографически
+      query = query.or(
+        `doc_date.lt.${cursor.docDate},and(doc_date.eq.${cursor.docDate},id.lt.${cursor.id})`
+      );
+    }
+
+    const { data, error } = await query;
     if (error) throw error;
     if (!data || data.length === 0) break;
-    allData.push(...(data as IEtlEntry[]));
-    if (data.length < BATCH_SIZE) break;
-    from += BATCH_SIZE;
+    const rows = data as IEtlEntry[];
+    allData.push(...rows);
+    if (rows.length < BATCH_SIZE) break;
+    const last = rows[rows.length - 1];
+    cursor = { docDate: last.doc_date, id: last.id };
   }
 
   return allData;
@@ -33,21 +48,34 @@ export async function getEntriesForDateRange(
   minDate: string,
   maxDate: string
 ): Promise<Pick<IEtlEntry, 'doc_date' | 'amount' | 'counterparty_name' | 'contract_name' | 'debit_account' | 'document' | 'analytics_dt' | 'analytics_kt'>[]> {
-  type Row = Pick<IEtlEntry, 'doc_date' | 'amount' | 'counterparty_name' | 'contract_name' | 'debit_account' | 'document' | 'analytics_dt' | 'analytics_kt'>;
+  type Row = Pick<IEtlEntry, 'doc_date' | 'amount' | 'counterparty_name' | 'contract_name' | 'debit_account' | 'document' | 'analytics_dt' | 'analytics_kt'> & { id: string };
   const all: Row[] = [];
-  let from = 0;
+  let cursor: { docDate: string; id: string } | null = null;
+
   while (true) {
-    const { data, error } = await supabase
+    let query = supabase
       .from('etl_1c_entries')
-      .select('doc_date, amount, counterparty_name, contract_name, debit_account, document, analytics_dt, analytics_kt')
+      .select('id, doc_date, amount, counterparty_name, contract_name, debit_account, document, analytics_dt, analytics_kt')
       .gte('doc_date', minDate)
       .lte('doc_date', maxDate)
-      .range(from, from + BATCH_SIZE - 1);
+      .order('doc_date', { ascending: false })
+      .order('id', { ascending: false })
+      .limit(BATCH_SIZE);
+
+    if (cursor) {
+      query = query.or(
+        `doc_date.lt.${cursor.docDate},and(doc_date.eq.${cursor.docDate},id.lt.${cursor.id})`
+      );
+    }
+
+    const { data, error } = await query;
     if (error) throw error;
     if (!data || data.length === 0) break;
-    all.push(...(data as Row[]));
-    if (data.length < BATCH_SIZE) break;
-    from += BATCH_SIZE;
+    const rows = data as Row[];
+    all.push(...rows);
+    if (rows.length < BATCH_SIZE) break;
+    const last = rows[rows.length - 1];
+    cursor = { docDate: last.doc_date, id: last.id };
   }
   return all;
 }

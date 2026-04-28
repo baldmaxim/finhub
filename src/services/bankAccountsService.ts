@@ -51,9 +51,12 @@ export async function updateOpeningBalance(
 }
 
 export async function getBalances(): Promise<IBankAccountBalance[]> {
+  // bank_account_balances — материализованное представление (миграция 057),
+  // сортировку MV не сохраняет — задаём её на клиенте.
   const { data, error } = await supabase
     .from('bank_account_balances')
-    .select('*');
+    .select('*')
+    .order('account_number');
   if (error) throw error;
   return data as IBankAccountBalance[];
 }
