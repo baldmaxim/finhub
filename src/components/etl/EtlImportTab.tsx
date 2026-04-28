@@ -78,6 +78,12 @@ export const EtlImportTab: FC = () => {
           message.info(`Р/с определён из файла: ${shortNum} (${bank_name})`);
         }
       }
+      if (result.openingBalanceUpdate) {
+        const { balance, date } = result.openingBalanceUpdate;
+        const fmtBalance = balance.toLocaleString('ru-RU', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const [y, m, d] = date.split('-');
+        message.info(`Начальное сальдо обновлено: ${fmtBalance} ₽ на ${d}.${m}.${y}`);
+      }
     }
   };
 

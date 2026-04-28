@@ -34,6 +34,22 @@ export async function remove(id: string): Promise<void> {
   if (error) throw error;
 }
 
+export async function updateOpeningBalance(
+  accountId: string,
+  openingBalance: number,
+  openingDate: string
+): Promise<void> {
+  const { error } = await supabase
+    .from('bank_accounts')
+    .update({
+      opening_balance: openingBalance,
+      opening_date: openingDate,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', accountId);
+  if (error) throw error;
+}
+
 export async function getBalances(): Promise<IBankAccountBalance[]> {
   const { data, error } = await supabase
     .from('bank_account_balances')

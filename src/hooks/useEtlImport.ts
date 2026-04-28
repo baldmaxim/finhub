@@ -85,6 +85,62 @@ function getCellRaw(sheet: XLSX.WorkSheet, r: number, c: number): unknown {
   return cell.v ?? cell.w;
 }
 
+function detectPeriodStartDate(
+  sheet: XLSX.WorkSheet,
+  headerRow: number
+): string | null {
+  const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1');
+  const startRow = range.s.r;
+  const endRow = Math.max(startRow, headerRow - 1);
+  for (let r = startRow; r <= endRow; r++) {
+    for (let c = range.s.c; c <= range.e.c; c++) {
+      const text = getCellString(sheet, r, c);
+      const m = text.match(/(\d{2})[./](\d{2})[./](\d{4})/);
+      if (m) return `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}`;
+    }
+  }
+  return null;
+}
+
+function detectOpeningBalance(
+  sheet: XLSX.WorkSheet,
+  headerRow: number,
+  dataStartRow: number
+): { balance: number; date: string } | null {
+  const range = XLSX.utils.decode_range(sheet['!ref'] || 'A1');
+  const scanFrom = headerRow;
+  const scanTo = Math.min(dataStartRow + 3, range.e.r);
+
+  let saldoRow = -1;
+  for (let r = scanFrom; r <= scanTo; r++) {
+    const text = getCellString(sheet, r, range.s.c).toLowerCase();
+    if (text.includes('сальдо на начало')) {
+      saldoRow = r;
+      break;
+    }
+  }
+  if (saldoRow < 0) return null;
+
+  let balance: number | null = null;
+  let dkSign: 'Д' | 'К' | null = null;
+  for (let c = range.e.c; c >= range.s.c; c--) {
+    const raw = getCellRaw(sheet, saldoRow, c);
+    if (typeof raw === 'number' && balance === null) {
+      balance = raw;
+    } else if (typeof raw === 'string' && dkSign === null) {
+      const t = raw.trim().toUpperCase();
+      if (t === 'Д' || t === 'К') dkSign = t as 'Д' | 'К';
+    }
+  }
+  if (balance === null) return null;
+  if (dkSign === 'К') balance = -balance;
+
+  const date = detectPeriodStartDate(sheet, headerRow);
+  if (!date) return null;
+
+  return { balance, date };
+}
+
 function detectBankAccountFromHeader(
   sheet: XLSX.WorkSheet,
   headerRow: number
@@ -442,6 +498,23 @@ export function useEtlImport(): IUseEtlImportResult {
       const routeResult = await etlService.routeBatch(batchId);
       await etlService.syncBdds();
 
+      let openingBalanceUpdate: { balance: number; date: string } | null = null;
+      if (sourceType === 'account_51' && effectiveBankAccountId) {
+        const opening = detectOpeningBalance(sheet, headerRow, dataStartRow);
+        if (opening) {
+          try {
+            await bankAccountsService.updateOpeningBalance(
+              effectiveBankAccountId,
+              opening.balance,
+              opening.date
+            );
+            openingBalanceUpdate = opening;
+          } catch (e) {
+            console.error('[ETL] Не удалось обновить opening_balance', e);
+          }
+        }
+      }
+
       const result: IEtlImportResult = {
         total: uniqueEntries.length,
         routed: routeResult.routed,
@@ -449,6 +522,7 @@ export function useEtlImport(): IUseEtlImportResult {
         batchId,
         detectedBankAccount,
         selectedMismatch,
+        openingBalanceUpdate,
       };
 
       setLastResult(result);

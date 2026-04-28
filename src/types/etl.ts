@@ -58,6 +58,7 @@ export interface IEtlImportResult {
   batchId: string;
   detectedBankAccount?: { id: string; account_number: string; bank_name: string } | null;
   selectedMismatch?: boolean;
+  openingBalanceUpdate?: { balance: number; date: string } | null;
 }
 
 export interface IBankAccount {
