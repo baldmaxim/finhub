@@ -130,13 +130,27 @@ export async function manualRoute(
 export async function rerouteQuarantine(): Promise<{ routed: number; quarantine: number }> {
   const { data, error } = await supabase.rpc('etl_reroute_quarantine', {});
   if (error) throw error;
+  // Fire-and-forget: пересчёт MV остатков по р/с — отдельным RPC, чтобы
+  // оба запроса уложились в 60s прокси Supabase. Ошибка тут не блокирует
+  // основной результат маршрутизации (миграция 058).
+  void refreshBankBalances().catch((e) => {
+    console.warn('[ETL] refresh_bank_balances не успел:', e);
+  });
   return data as { routed: number; quarantine: number };
 }
 
 export async function syncBdds(): Promise<{ deleted: number; inserted: number }> {
   const { data, error } = await supabase.rpc('etl_sync_bdds', {});
   if (error) throw error;
+  void refreshBankBalances().catch((e) => {
+    console.warn('[ETL] refresh_bank_balances не успел:', e);
+  });
   return data as { deleted: number; inserted: number };
+}
+
+export async function refreshBankBalances(): Promise<void> {
+  const { error } = await supabase.rpc('refresh_bank_balances', {});
+  if (error) throw error;
 }
 
 // === Маппинг договоров ===

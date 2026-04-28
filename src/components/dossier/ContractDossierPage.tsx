@@ -163,7 +163,7 @@ export const ContractDossierPage: FC = () => {
             onDelete={handleDelete}
           />
 
-          <Space direction="vertical" size={24} className="w-full">
+          <Space orientation="vertical" size={24} className="w-full">
             <BddsConditionsBlock data={effective.effective.bdds} header={effective.effective.header} />
             <AdvanceCalculatorBlock bdds={effective.effective.bdds} header={effective.effective.header} />
             <BdrConditionsBlock data={effective.effective.bdr} bdds={effective.effective.bdds} />

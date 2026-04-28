@@ -215,7 +215,7 @@ export const EtlImportTab: FC = () => {
       </Row>
 
       <Card size="small" style={{ marginBottom: 16 }}>
-        <Space direction="vertical" style={{ width: '100%' }} size="middle">
+        <Space orientation="vertical" style={{ width: '100%' }} size="middle">
           <Radio.Group
             value={sourceType}
             onChange={(e) => setSourceType(e.target.value)}

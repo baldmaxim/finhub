@@ -71,7 +71,7 @@ export function LoginPage() {
             <Input.Password prefix={<LockOutlined />} placeholder="Пароль" size="large" />
           </Form.Item>
           <Form.Item>
-            <Space style={{ width: '100%' }} direction="vertical">
+            <Space style={{ width: '100%' }} orientation="vertical">
               <Button
                 type="primary"
                 block
