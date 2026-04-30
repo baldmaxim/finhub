@@ -5,6 +5,7 @@ export async function getProjects(): Promise<Project[]> {
   const { data, error } = await supabase
     .from('projects')
     .select('*')
+    .neq('code', 'OBSCHEHOZ')
     .order('code');
 
   if (error) throw error;
