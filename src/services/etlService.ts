@@ -177,6 +177,44 @@ export async function manualRoute(
   if (error) throw error;
 }
 
+export async function routePending(): Promise<{ routed: number; quarantine: number }> {
+  // По аналогии с rerouteQuarantine — клиентский цикл по чанкам.
+  // RPC etl_route_pending_chunk обрабатывает p_limit pending-строк за вызов.
+  const session = (typeof crypto !== 'undefined' && 'randomUUID' in crypto)
+    ? crypto.randomUUID()
+    : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+  const CHUNK_SIZE = 2000;
+  const MAX_ITERATIONS = 200;
+
+  let totalRouted = 0;
+  let totalQuarantine = 0;
+  let iterations = 0;
+
+  while (iterations < MAX_ITERATIONS) {
+    const { data, error } = await supabase.rpc('etl_route_pending_chunk', {
+      p_limit:   CHUNK_SIZE,
+      p_session: session,
+    });
+    if (error) throw error;
+    const result = data as {
+      routed: number;
+      quarantine: number;
+      processed: number;
+      remaining: number;
+    };
+    totalRouted     += result.routed;
+    totalQuarantine += result.quarantine;
+    iterations += 1;
+    if (result.processed === 0) break;
+  }
+
+  void syncBdds().catch((e) => {
+    console.warn('[ETL] sync_bdds после route_pending не успел:', e);
+  });
+
+  return { routed: totalRouted, quarantine: totalQuarantine };
+}
+
 export async function rerouteQuarantine(): Promise<{ routed: number; quarantine: number }> {
   // С миграции 060 etl_reroute_quarantine — чанковая (по p_limit). Клиент
   // в цикле зовёт RPC с одной session, пока RPC не вернёт processed=0.

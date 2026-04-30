@@ -1,7 +1,7 @@
 import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import type { FC } from 'react';
 import { Button, Table, Tag, message, Card, Space, Statistic, Row, Col, Typography, Upload, Radio, Select, Tooltip, DatePicker, Input } from 'antd';
-import { ReloadOutlined, CloudUploadOutlined, InboxOutlined } from '@ant-design/icons';
+import { ReloadOutlined, CloudUploadOutlined, InboxOutlined, ThunderboltOutlined } from '@ant-design/icons';
 import type { Dayjs } from 'dayjs';
 import { useEtlImport } from '../../hooks/useEtlImport';
 import * as etlService from '../../services/etlService';
@@ -45,6 +45,7 @@ export const EtlImportTab: FC = () => {
   const [filterSearch, setFilterSearch] = useState<string>('');
   const [searchInput, setSearchInput] = useState<string>('');
   const [loadingEntries, setLoadingEntries] = useState(false);
+  const [routingPending, setRoutingPending] = useState(false);
   const [sourceType, setSourceType] = useState<EtlSourceType>('account_51');
   const [bankAccounts, setBankAccounts] = useState<IBankAccount[]>([]);
   const [selectedBankAccountId, setSelectedBankAccountId] = useState<string | null>(null);
@@ -99,6 +100,19 @@ export const EtlImportTab: FC = () => {
 
   // Сбрасываем страницу на 1 при смене фильтров
   useEffect(() => { setPage(1); }, [filterStatus, filterDates, filterSearch]);
+
+  const handleRoutePending = async () => {
+    setRoutingPending(true);
+    try {
+      const result = await etlService.routePending();
+      message.success(`Прогнано pending: разнесено ${result.routed}, в карантин ${result.quarantine}`);
+      await loadEntries();
+    } catch (e) {
+      message.error(`Ошибка маршрутизации: ${(e as Error).message}`);
+    } finally {
+      setRoutingPending(false);
+    }
+  };
 
   const applySearch = () => setFilterSearch(searchInput);
   const resetFilters = () => {
@@ -340,6 +354,18 @@ export const EtlImportTab: FC = () => {
         <Button icon={<ReloadOutlined />} onClick={loadEntries} loading={loadingEntries} size="small">
           Обновить
         </Button>
+        <Tooltip title={`Прогнать ${counts.pending} pending-проводок через маршрутизацию (чанками по 2000)`}>
+          <Button
+            icon={<ThunderboltOutlined />}
+            onClick={handleRoutePending}
+            loading={routingPending}
+            disabled={counts.pending === 0}
+            size="small"
+            type="primary"
+          >
+            Прогнать pending ({counts.pending})
+          </Button>
+        </Tooltip>
       </Space>
 
       <Card size="small" style={{ marginBottom: 16 }}>
