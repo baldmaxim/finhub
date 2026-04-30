@@ -14,24 +14,15 @@ export async function getEntries(status?: string, batchId?: string): Promise<IEt
   let cursor: { docDate: string; id: string } | null = null;
 
   while (true) {
-    let query = supabase
-      .from('etl_1c_entries')
-      .select('*')
-      .order('doc_date', { ascending: false })
-      .order('id', { ascending: false })
-      .limit(BATCH_SIZE);
-
-    if (status) query = query.eq('status', status);
-    if (batchId) query = query.eq('import_batch_id', batchId);
-
-    if (cursor) {
-      // (doc_date, id) < (cursor.docDate, cursor.id) — лексикографически
-      query = query.or(
-        `doc_date.lt.${cursor.docDate},and(doc_date.eq.${cursor.docDate},id.lt.${cursor.id})`
-      );
-    }
-
-    const { data, error } = await query;
+    const { data, error } = await supabase.rpc('etl_1c_entries_keyset', {
+      p_status:      status  ?? null,
+      p_batch_id:    batchId ?? null,
+      p_min_date:    null,
+      p_max_date:    null,
+      p_cursor_date: cursor?.docDate ?? null,
+      p_cursor_id:   cursor?.id      ?? null,
+      p_limit:       BATCH_SIZE,
+    });
     if (error) throw error;
     if (!data || data.length === 0) break;
     const rows = data as IEtlEntry[];
@@ -44,6 +35,71 @@ export async function getEntries(status?: string, batchId?: string): Promise<IEt
   return allData;
 }
 
+// Серверная пагинация для страницы Импорт. Тянуть все 200k+ проводок
+// одним keyset-обходом упирается в statement_timeout прокси (см. 057),
+// поэтому UI работает страницами через .range(from, to).
+export interface IEntriesPageFilters {
+  status?: string;
+  dateFrom?: string;
+  dateTo?: string;
+  search?: string;
+}
+
+export interface IEntriesPage {
+  rows: IEtlEntry[];
+  total: number;
+}
+
+export async function getEntriesPage(
+  page: number,
+  pageSize: number,
+  filters?: IEntriesPageFilters
+): Promise<IEntriesPage> {
+  const from = (page - 1) * pageSize;
+  const to = from + pageSize - 1;
+
+  let q = supabase
+    .from('etl_1c_entries')
+    .select('*', { count: 'exact' })
+    .order('doc_date', { ascending: false })
+    .order('id', { ascending: false })
+    .range(from, to);
+
+  if (filters?.status)   q = q.eq('status', filters.status);
+  if (filters?.dateFrom) q = q.gte('doc_date', filters.dateFrom);
+  if (filters?.dateTo)   q = q.lte('doc_date', filters.dateTo);
+  if (filters?.search) {
+    const s = filters.search.replace(/[,()]/g, ' ').trim();
+    if (s) {
+      q = q.or(`counterparty_name.ilike.%${s}%,contract_name.ilike.%${s}%`);
+    }
+  }
+
+  const { data, error, count } = await q;
+  if (error) throw error;
+  return { rows: (data ?? []) as IEtlEntry[], total: count ?? 0 };
+}
+
+export interface IStatusCounts {
+  total: number;
+  pending: number;
+  routed: number;
+  quarantine: number;
+  manual: number;
+}
+
+export async function getStatusCounts(
+  filters?: Omit<IEntriesPageFilters, 'status'>
+): Promise<IStatusCounts> {
+  const { data, error } = await supabase.rpc('etl_get_status_counts', {
+    p_date_from: filters?.dateFrom ?? null,
+    p_date_to:   filters?.dateTo   ?? null,
+    p_search:    filters?.search   ?? null,
+  });
+  if (error) throw error;
+  return data as IStatusCounts;
+}
+
 export async function getEntriesForDateRange(
   minDate: string,
   maxDate: string
@@ -53,22 +109,15 @@ export async function getEntriesForDateRange(
   let cursor: { docDate: string; id: string } | null = null;
 
   while (true) {
-    let query = supabase
-      .from('etl_1c_entries')
-      .select('id, doc_date, amount, counterparty_name, contract_name, debit_account, document, analytics_dt, analytics_kt, row_index')
-      .gte('doc_date', minDate)
-      .lte('doc_date', maxDate)
-      .order('doc_date', { ascending: false })
-      .order('id', { ascending: false })
-      .limit(BATCH_SIZE);
-
-    if (cursor) {
-      query = query.or(
-        `doc_date.lt.${cursor.docDate},and(doc_date.eq.${cursor.docDate},id.lt.${cursor.id})`
-      );
-    }
-
-    const { data, error } = await query;
+    const { data, error } = await supabase.rpc('etl_1c_entries_keyset', {
+      p_status:      null,
+      p_batch_id:    null,
+      p_min_date:    minDate,
+      p_max_date:    maxDate,
+      p_cursor_date: cursor?.docDate ?? null,
+      p_cursor_id:   cursor?.id      ?? null,
+      p_limit:       BATCH_SIZE,
+    });
     if (error) throw error;
     if (!data || data.length === 0) break;
     const rows = data as Row[];

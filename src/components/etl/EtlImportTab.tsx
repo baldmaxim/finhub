@@ -1,11 +1,16 @@
-import { useRef, useState, useEffect, useMemo } from 'react';
+import { useRef, useState, useEffect, useMemo, useCallback } from 'react';
 import type { FC } from 'react';
-import { Button, Table, Tag, message, Card, Space, Statistic, Row, Col, Typography, Upload, Radio, Select, Tooltip } from 'antd';
+import { Button, Table, Tag, message, Card, Space, Statistic, Row, Col, Typography, Upload, Radio, Select, Tooltip, DatePicker, Input } from 'antd';
 import { ReloadOutlined, CloudUploadOutlined, InboxOutlined } from '@ant-design/icons';
+import type { Dayjs } from 'dayjs';
 import { useEtlImport } from '../../hooks/useEtlImport';
 import * as etlService from '../../services/etlService';
+import type { IEntriesPageFilters, IStatusCounts } from '../../services/etlService';
 import * as bankAccountsService from '../../services/bankAccountsService';
 import type { IEtlEntry, EtlSourceType, IBankAccount } from '../../types/etl';
+
+const PAGE_SIZE_DEFAULT = 50;
+const EMPTY_COUNTS: IStatusCounts = { total: 0, pending: 0, routed: 0, quarantine: 0, manual: 0 };
 
 const { Dragger } = Upload;
 
@@ -31,23 +36,53 @@ const SOURCE_TYPE_MAP: Record<string, string> = {
 export const EtlImportTab: FC = () => {
   const { importing, lastResult, error, importFile } = useEtlImport();
   const [entries, setEntries] = useState<IEtlEntry[]>([]);
+  const [total, setTotal] = useState(0);
+  const [counts, setCounts] = useState<IStatusCounts>(EMPTY_COUNTS);
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(PAGE_SIZE_DEFAULT);
+  const [filterStatus, setFilterStatus] = useState<string | undefined>(undefined);
+  const [filterDates, setFilterDates] = useState<[Dayjs | null, Dayjs | null] | null>(null);
+  const [filterSearch, setFilterSearch] = useState<string>('');
+  const [searchInput, setSearchInput] = useState<string>('');
   const [loadingEntries, setLoadingEntries] = useState(false);
   const [sourceType, setSourceType] = useState<EtlSourceType>('account_51');
   const [bankAccounts, setBankAccounts] = useState<IBankAccount[]>([]);
   const [selectedBankAccountId, setSelectedBankAccountId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const loadEntries = async () => {
+  const buildFilters = useCallback((): IEntriesPageFilters => {
+    const dateFrom = filterDates?.[0]?.format('YYYY-MM-DD');
+    const dateTo   = filterDates?.[1]?.format('YYYY-MM-DD');
+    const search   = filterSearch.trim() || undefined;
+    return {
+      status: filterStatus,
+      dateFrom: dateFrom || undefined,
+      dateTo: dateTo || undefined,
+      search,
+    };
+  }, [filterStatus, filterDates, filterSearch]);
+
+  const loadEntries = useCallback(async () => {
     setLoadingEntries(true);
     try {
-      const data = await etlService.getEntries();
-      setEntries(data);
+      const filters = buildFilters();
+      const [pageData, countsData] = await Promise.all([
+        etlService.getEntriesPage(page, pageSize, filters),
+        etlService.getStatusCounts({
+          dateFrom: filters.dateFrom,
+          dateTo: filters.dateTo,
+          search: filters.search,
+        }),
+      ]);
+      setEntries(pageData.rows);
+      setTotal(pageData.total);
+      setCounts(countsData);
     } catch {
       message.error('Ошибка загрузки');
     } finally {
       setLoadingEntries(false);
     }
-  };
+  }, [page, pageSize, buildFilters]);
 
   const loadBankAccounts = async () => {
     try {
@@ -58,8 +93,20 @@ export const EtlImportTab: FC = () => {
     }
   };
 
-  useEffect(() => { loadEntries(); loadBankAccounts(); }, []);
-  useEffect(() => { if (lastResult) loadEntries(); }, [lastResult]);
+  useEffect(() => { loadBankAccounts(); }, []);
+  useEffect(() => { loadEntries(); }, [loadEntries]);
+  useEffect(() => { if (lastResult) loadEntries(); /* eslint-disable-next-line react-hooks/exhaustive-deps */ }, [lastResult]);
+
+  // Сбрасываем страницу на 1 при смене фильтров
+  useEffect(() => { setPage(1); }, [filterStatus, filterDates, filterSearch]);
+
+  const applySearch = () => setFilterSearch(searchInput);
+  const resetFilters = () => {
+    setFilterStatus(undefined);
+    setFilterDates(null);
+    setFilterSearch('');
+    setSearchInput('');
+  };
 
   const handleFile = async (file: File) => {
     const result = await importFile(file, sourceType, sourceType === 'account_51' ? selectedBankAccountId : null);
@@ -196,10 +243,10 @@ export const EtlImportTab: FC = () => {
   ];
 
   const stats = {
-    total: entries.length,
-    routed: entries.filter((t) => t.status === 'routed').length,
-    quarantine: entries.filter((t) => t.status === 'quarantine').length,
-    manual: entries.filter((t) => t.status === 'manual').length,
+    total: counts.total,
+    routed: counts.routed,
+    quarantine: counts.quarantine,
+    manual: counts.manual,
   };
 
   return (
@@ -273,7 +320,7 @@ export const EtlImportTab: FC = () => {
         </Space>
       </Card>
 
-      <Space style={{ marginBottom: 16 }}>
+      <Space style={{ marginBottom: 16 }} wrap>
         <input
           ref={fileInputRef}
           type="file"
@@ -295,6 +342,43 @@ export const EtlImportTab: FC = () => {
         </Button>
       </Space>
 
+      <Card size="small" style={{ marginBottom: 16 }}>
+        <Space wrap size="small">
+          <Select
+            placeholder="Статус"
+            value={filterStatus}
+            onChange={(v) => setFilterStatus(v)}
+            allowClear
+            size="small"
+            style={{ width: 160 }}
+            options={[
+              { value: 'pending',    label: 'Ожидает' },
+              { value: 'routed',     label: 'Разнесена' },
+              { value: 'quarantine', label: 'Карантин' },
+              { value: 'manual',     label: 'Вручную' },
+            ]}
+          />
+          <DatePicker.RangePicker
+            size="small"
+            value={filterDates as [Dayjs | null, Dayjs | null]}
+            onChange={(v) => setFilterDates(v as [Dayjs | null, Dayjs | null] | null)}
+            format="DD.MM.YYYY"
+            allowEmpty={[true, true]}
+          />
+          <Input.Search
+            placeholder="Контрагент / договор"
+            value={searchInput}
+            onChange={(e) => setSearchInput(e.target.value)}
+            onSearch={applySearch}
+            allowClear
+            onClear={() => { setSearchInput(''); setFilterSearch(''); }}
+            size="small"
+            style={{ width: 240 }}
+          />
+          <Button size="small" onClick={resetFilters}>Сбросить</Button>
+        </Space>
+      </Card>
+
       {error && (
         <Typography.Text type="danger" style={{ display: 'block', marginBottom: 8 }}>
           {error}
@@ -306,7 +390,14 @@ export const EtlImportTab: FC = () => {
         columns={columns}
         rowKey="id"
         size="small"
-        pagination={{ pageSize: 50, showSizeChanger: true, showTotal: (t) => `Всего: ${t}` }}
+        pagination={{
+          current: page,
+          pageSize,
+          total,
+          showSizeChanger: true,
+          showTotal: (t) => `Всего: ${t}`,
+          onChange: (p, ps) => { setPage(p); setPageSize(ps); },
+        }}
         loading={loadingEntries}
         scroll={{ x: 1160 }}
       />
