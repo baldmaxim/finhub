@@ -15,13 +15,14 @@ export async function getEntries(status?: string, batchId?: string): Promise<IEt
 
   while (true) {
     const { data, error } = await supabase.rpc('etl_1c_entries_keyset', {
-      p_status:      status  ?? null,
-      p_batch_id:    batchId ?? null,
-      p_min_date:    null,
-      p_max_date:    null,
-      p_cursor_date: cursor?.docDate ?? null,
-      p_cursor_id:   cursor?.id      ?? null,
-      p_limit:       BATCH_SIZE,
+      p_status:          status  ?? null,
+      p_batch_id:        batchId ?? null,
+      p_bank_account_id: null,
+      p_min_date:        null,
+      p_max_date:        null,
+      p_cursor_date:     cursor?.docDate ?? null,
+      p_cursor_id:       cursor?.id      ?? null,
+      p_limit:           BATCH_SIZE,
     });
     if (error) throw error;
     if (!data || data.length === 0) break;
@@ -102,7 +103,8 @@ export async function getStatusCounts(
 
 export async function getEntriesForDateRange(
   minDate: string,
-  maxDate: string
+  maxDate: string,
+  bankAccountId?: string | null
 ): Promise<Pick<IEtlEntry, 'doc_date' | 'amount' | 'counterparty_name' | 'contract_name' | 'debit_account' | 'document' | 'analytics_dt' | 'analytics_kt' | 'row_index'>[]> {
   type Row = Pick<IEtlEntry, 'doc_date' | 'amount' | 'counterparty_name' | 'contract_name' | 'debit_account' | 'document' | 'analytics_dt' | 'analytics_kt' | 'row_index'> & { id: string };
   const all: Row[] = [];
@@ -110,13 +112,14 @@ export async function getEntriesForDateRange(
 
   while (true) {
     const { data, error } = await supabase.rpc('etl_1c_entries_keyset', {
-      p_status:      null,
-      p_batch_id:    null,
-      p_min_date:    minDate,
-      p_max_date:    maxDate,
-      p_cursor_date: cursor?.docDate ?? null,
-      p_cursor_id:   cursor?.id      ?? null,
-      p_limit:       BATCH_SIZE,
+      p_status:          null,
+      p_batch_id:        null,
+      p_bank_account_id: bankAccountId ?? null,
+      p_min_date:        minDate,
+      p_max_date:        maxDate,
+      p_cursor_date:     cursor?.docDate ?? null,
+      p_cursor_id:       cursor?.id      ?? null,
+      p_limit:           BATCH_SIZE,
     });
     if (error) throw error;
     if (!data || data.length === 0) break;

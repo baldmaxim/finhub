@@ -477,7 +477,7 @@ export function useEtlImport(): IUseEtlImportResult {
       const dates = entries.map((e) => e.doc_date).sort();
       const minDate = dates[0];
       const maxDate = dates[dates.length - 1];
-      const existing = await etlService.getEntriesForDateRange(minDate, maxDate);
+      const existing = await etlService.getEntriesForDateRange(minDate, maxDate, effectiveBankAccountId);
 
       // Для каждого бизнес-ключа собираем множество row_index, которые УЖЕ есть в БД.
       const existingIndices = new Map<string, Set<number>>();
