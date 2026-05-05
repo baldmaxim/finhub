@@ -80,7 +80,7 @@ export async function getEntriesPage(
 
   let q = supabase
     .from('etl_1c_entries')
-    .select('*', { count: 'exact' })
+    .select('*', { count: 'estimated' })
     .order('doc_date', { ascending: false })
     .order('id', { ascending: false })
     .range(from, to);
@@ -171,10 +171,14 @@ export async function insertEntries(
     row_index?: number;
   }>
 ): Promise<void> {
+  // Через RPC etl_insert_entries (sql/070), а не .from().insert() — иначе
+  // supabase-js формирует POST с длинным ?columns=... в URL, который
+  // детерминированно режется локальной TLS-инспекцией антивируса / DLP /
+  // расширениями браузера как ERR_CONNECTION_RESET (не лечится ретраями).
   for (let i = 0; i < entries.length; i += INSERT_BATCH_SIZE) {
     const batch = entries.slice(i, i + INSERT_BATCH_SIZE);
     await withRetry(async () => {
-      const { error } = await supabase.from('etl_1c_entries').insert(batch);
+      const { error } = await supabase.rpc('etl_insert_entries', { p_rows: batch });
       if (error) throw error;
     });
   }
