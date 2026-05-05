@@ -2,6 +2,25 @@ import { supabase } from '../config/supabase';
 import type { IEtlEntry, IEtlContractMap, IEtlPaymentMask, IEtlRoutingRule } from '../types/etl';
 
 const BATCH_SIZE = 500;
+// Меньше keyset-страницы — POST с body на ~50 KB вместо ~250 KB. Помогает
+// проходить нестабильный канал (TLS-инспекция антивируса, Wi-Fi с DPI),
+// где большие upload'ы оборачивались ERR_CONNECTION_RESET.
+const INSERT_BATCH_SIZE = 100;
+
+async function withRetry<T>(fn: () => Promise<T>, attempts = 3, baseDelayMs = 500): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (e) {
+      lastErr = e;
+      if (i < attempts - 1) {
+        await new Promise((r) => setTimeout(r, baseDelayMs * 2 ** i));
+      }
+    }
+  }
+  throw lastErr;
+}
 
 // === Записи (проводки) ===
 //
@@ -152,10 +171,12 @@ export async function insertEntries(
     row_index?: number;
   }>
 ): Promise<void> {
-  for (let i = 0; i < entries.length; i += BATCH_SIZE) {
-    const batch = entries.slice(i, i + BATCH_SIZE);
-    const { error } = await supabase.from('etl_1c_entries').insert(batch);
-    if (error) throw error;
+  for (let i = 0; i < entries.length; i += INSERT_BATCH_SIZE) {
+    const batch = entries.slice(i, i + INSERT_BATCH_SIZE);
+    await withRetry(async () => {
+      const { error } = await supabase.from('etl_1c_entries').insert(batch);
+      if (error) throw error;
+    });
   }
 }
 
